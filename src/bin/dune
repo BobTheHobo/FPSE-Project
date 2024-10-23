@@ -1,0 +1,11 @@
+(executable
+  (name cli)
+  (modules
+    cli)
+  (libraries
+    core
+    core_unix
+    core_unix.sys_unix
+    stdio
+    grid
+    ))
