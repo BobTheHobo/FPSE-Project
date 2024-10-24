@@ -14,8 +14,11 @@ end
 module type Grid = sig
     include Cell
 
-    (* Grid type is a 2D list of cells *)
-    type t
+    type t = {
+        cells : ct list;
+        width : int;
+        height : int;
+    }
 
     val create_grid : int -> int -> t
     val set_cell : t -> int -> int -> ct -> t
@@ -24,13 +27,7 @@ module type Grid = sig
     val draw_grid : t -> unit
 end
 
-type 'a grid = {
-    cells : 'a list;
-    width : int;
-    height : int;
-}
-
-module type G = functor (Cell : Cell) -> Grid with type t = Cell.ct grid
+module type G = functor (Cell : Cell) -> Grid with type ct = Cell.ct
 
 (* Define functor used to create grids *)
 module Make : G = functor (Cell : Cell) ->
@@ -38,7 +35,11 @@ struct
     include Cell
 
     (* Cells, width, height *)
-    type t = Cell.ct grid
+    type t = {
+        cells : ct list;
+        width : int;
+        height : int;
+    }
 
     (* Create empty grid *)
     let create_grid (w : int) (h : int) : t =
