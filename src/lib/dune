@@ -2,6 +2,8 @@
   (name grid)
   (modules
     grid)
+  (preprocess
+    (pps ppx_jane bisect_ppx))
   (libraries
     core_unix
     core_unix.sys_unix

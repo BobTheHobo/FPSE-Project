@@ -13,7 +13,7 @@ let () =
   | _ :: grid_rows :: grid_cols :: other_args -> begin
     print_string "Grid rows: "; print_string @@ grid_rows ^ "\n"; 
     print_string "Grid cols: "; print_string @@ grid_cols ^ "\n";
-    let grid = StrGrid.create_grid (int_of_string grid_cols) (int_of_string grid_rows) in  
+    let grid = StrGrid.create_grid (int_of_string grid_cols) (int_of_string grid_rows) in
     StrGrid.draw_grid grid;
     match other_args with
     | [] ->  ()

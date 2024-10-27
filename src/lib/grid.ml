@@ -5,46 +5,43 @@ open Core
 
 module type Cell = sig
     (* Cell type *)
-    type ct
+    type t
 
-    val default : ct
-    val to_string : ct -> string
+    val default : t
+    val to_string : t -> string
+    val sexp_of_t : t -> Sexp.t
+    val t_of_sexp : Sexp.t -> t
+    val equal : t -> t -> bool
+    val compare : t -> t -> int
 end
 
-module type Grid = sig
-    include Cell
+type 'a grid = {
+    cells : 'a list;
+    width : int;
+    height : int;
+}
 
-    type t = {
-        cells : ct list;
-        width : int;
-        height : int;
-    }
+module type Grid = functor (Cell : Cell) -> sig
+    (* Grid type is a 2D list of cells *)
+    type t = Cell.t grid
 
     val create_grid : int -> int -> t
-    val set_cell : t -> int -> int -> ct -> t
+    val set_cell : t -> int -> int -> Cell.t -> t
     val get_index : t -> int -> int -> int
-    val get_cell : t -> int -> int -> ct
+    val get_cell : t -> int -> int -> Cell.t
     val draw_grid : t -> unit
 end
 
-module type G = functor (Cell : Cell) -> Grid with type ct = Cell.ct
-
 (* Define functor used to create grids *)
-module Make : G = functor (Cell : Cell) ->
+module Make = functor (Cell : Cell) ->
 struct
-    include Cell
-
     (* Cells, width, height *)
-    type t = {
-        cells : ct list;
-        width : int;
-        height : int;
-    }
+    type t = Cell.t grid
 
     (* Create empty grid *)
     let create_grid (w : int) (h : int) : t =
         let cells = List.init (h * w) ~f:(fun _ -> Cell.default) in
-        {cells; width = w; height = h}
+        { cells; width = w; height = h }
         
     let draw_col_labels (width : int) : unit =
         (* Front spacing for row labels *)
@@ -70,7 +67,7 @@ struct
         grid.width * row + col
 
     (* Get the content of a specific cell *)
-    let get_cell (grid : t) (row : int) (col : int) : ct =
+    let get_cell (grid : t) (row : int) (col : int) : Cell.t =
         (* should eventually check if is out of bounds and do something *)
         List.nth_exn grid.cells (get_index grid row col)
 
@@ -79,7 +76,7 @@ struct
             print_string "Cell position out of bounds"; true
         ) else false
 
-    let set_cell (grid : t) (row : int) (col : int) (value : ct) : t = 
+    let set_cell (grid : t) (row : int) (col : int) (value : Cell.t) : t = 
         if is_out_of_bounds grid row col then grid 
         else
             let idx = get_index grid row col in
@@ -108,12 +105,13 @@ struct
                 aux (row_i + 1)
             end
         in
-        aux 0       
+        aux 0
 end
 
 (* String Cell *)
 module StrCell : Cell = struct
-  type ct = string
-  let default = " "
-  let to_string x = x
+    type t = string [@@deriving sexp, compare, equal]
+    let default = ""
+    let to_string x = String.to_string x
 end
+

@@ -1,22 +1,15 @@
+open Core
+
 module type Cell = sig
     (* Cell type *)
-    type ct
-
-    val default : ct
-    val to_string : ct -> string
-end
-
-module type Grid = sig
-    include Cell
-
-    (* Grid type is a 2D list of cells *)
     type t
 
-    val create_grid : int -> int -> t
-    val set_cell : t -> int -> int -> ct -> t
-    val get_index : t -> int -> int -> int
-    val get_cell : t -> int -> int -> ct
-    val draw_grid : t -> unit
+    val default : t
+    val to_string : t -> string
+    val sexp_of_t : t -> Sexp.t
+    val t_of_sexp : Sexp.t -> t
+    val equal : t -> t -> bool
+    val compare : t -> t -> int
 end
 
 type 'a grid = {
@@ -25,8 +18,17 @@ type 'a grid = {
     height : int;
 }
 
-module type G = functor (Cell : Cell) -> Grid with type t = Cell.ct grid
+module type Grid = functor (Cell : Cell) -> sig
+    (* Grid type is a 2D list of cells *)
+    type t = Cell.t grid
 
-module Make : G
+    val create_grid : int -> int -> t
+    val set_cell : t -> int -> int -> Cell.t -> t
+    val get_index : t -> int -> int -> int
+    val get_cell : t -> int -> int -> Cell.t
+    val draw_grid : t -> unit
+end
+
+module Make : Grid
 
 module StrCell : Cell
