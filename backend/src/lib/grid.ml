@@ -112,6 +112,9 @@ end
 module StrCell : Cell = struct
     type t = string [@@deriving sexp, compare, equal]
     let default = ""
-    let to_string x = String.to_string x
+    let to_string = String.to_string
+    let sexp_of_t = String.sexp_of_t
+    let t_of_sexp = String.t_of_sexp
+    let equal = String.equal
+    let compare = String.compare
 end
-
