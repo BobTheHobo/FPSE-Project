@@ -16,7 +16,7 @@ module type Cell = sig
 end
 
 type 'a grid = {
-    cells : 'a list;
+    cells : 'a list list;
     width : int;
     height : int;
 }
@@ -40,7 +40,7 @@ struct
 
     (* Create empty grid *)
     let create_grid (w : int) (h : int) : t =
-        let cells = List.init (h * w) ~f:(fun _ -> Cell.default) in
+        let cells = List.init (h) ~f:(fun _ -> List.init w ~f:(fun _ -> Cell.default)) in
         { cells; width = w; height = h }
         
     let draw_col_labels (width : int) : unit =
@@ -69,7 +69,8 @@ struct
     (* Get the content of a specific cell *)
     let get_cell (grid : t) (row : int) (col : int) : Cell.t =
         (* should eventually check if is out of bounds and do something *)
-        List.nth_exn grid.cells (get_index grid row col)
+        let row_hd = List.nth_exn grid.cells row in
+        List.nth_exn row_hd col
 
     let is_out_of_bounds (grid : t) (row : int) (col : int) : bool = 
         if row < 0 || row >= grid.height || col < 0 || col >= grid.width then (
@@ -79,10 +80,13 @@ struct
     let set_cell (grid : t) (row : int) (col : int) (value : Cell.t) : t = 
         if is_out_of_bounds grid row col then grid 
         else
-            let idx = get_index grid row col in
             let new_cells = 
-                List.mapi grid.cells ~f:(fun i cell ->
-                    if i = idx then value else cell
+                List.mapi grid.cells ~f:(fun i row_hd ->
+                    if i = row then 
+                        List.mapi row_hd ~f:(fun j cell ->
+                            if j = col then value else cell
+                        )
+                    else row_hd
                 )
             in
             {grid with cells = new_cells}

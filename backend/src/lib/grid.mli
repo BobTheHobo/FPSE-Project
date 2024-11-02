@@ -13,7 +13,7 @@ module type Cell = sig
 end
 
 type 'a grid = {
-    cells : 'a list;
+    cells : 'a list list;
     width : int;
     height : int;
 }
