@@ -1,7 +1,8 @@
 (library
   (name grid)
   (modules
-    grid)
+    grid
+    simple_grid)
   (preprocess
     (pps ppx_jane bisect_ppx))
   (libraries
