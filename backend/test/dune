@@ -4,6 +4,6 @@
   (libraries
     core
     ounit2
-    grid
+    game
   )
   (preprocess (pps ppx_jane)))

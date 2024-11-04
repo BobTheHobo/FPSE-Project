@@ -1,5 +1,5 @@
 (library
-  (name grid)
+  (name game)
   (modules
     grid
     simple_grid)
