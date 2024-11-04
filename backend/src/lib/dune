@@ -2,7 +2,8 @@
   (name game)
   (modules
     grid
-    simple_grid)
+    simple_grid
+    input)
   (preprocess
     (pps ppx_jane bisect_ppx))
   (libraries

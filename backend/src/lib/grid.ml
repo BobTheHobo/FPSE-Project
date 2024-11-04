@@ -3,46 +3,45 @@ open Core
 (* Silence unused variable warning *)
 [@@@ocaml.warning "-27"]
 
-module type Cell = sig
-    (* Cell type *)
-    type t
+(* Eventually use CellVis to specify what to use for the different ice/fire cells *)
+module type CellVis = sig
+    val cell_default : string (* String used for empty cells *)
+    val cell_alive : string (* String used for alive cells *)
 
-    val default : t
-    val to_string : t -> string
-    val sexp_of_t : t -> Sexp.t
-    val t_of_sexp : Sexp.t -> t
-    val equal : t -> t -> bool
-    val compare : t -> t -> int
+    val player : string (* String used for player *)
 end
 
-type 'a grid = {
-    cells : 'a list list;
-    width : int;
-    height : int;
-}
-
-module type Grid = functor (Cell : Cell) -> sig
-    (* Grid type is a 2D list of cells *)
-    type t = Cell.t grid
-
-    val create_grid : int -> int -> t
-    val set_cell : t -> int -> int -> Cell.t -> t
-    val get_index : t -> int -> int -> int
-    val get_cell : t -> int -> int -> Cell.t
-    val draw_grid : t -> unit
-end
-
-(* Define functor used to create grids *)
-module Make = functor (Cell : Cell) ->
+module ConwayCellVis : CellVis = 
 struct
-    (* Cells, width, height *)
-    type t = Cell.t grid
+    let cell_default = " "
+    let cell_alive = "*"
+    let player = "!"
+end
 
-    (* Create empty grid *)
-    let create_grid (w : int) (h : int) : t =
-        let cells = List.init (h) ~f:(fun _ -> List.init w ~f:(fun _ -> Cell.default)) in
-        { cells; width = w; height = h }
-        
+(* Functor that uses a CellVis that specifies the strings to use for default and alive cells *)
+module MakeGridVis = functor (CellVis : CellVis) -> 
+struct
+    (* Visualized grid of of type string list list  *)
+    type t = { 
+        cells: string list list;
+        width : int;
+        height : int;
+    }
+
+    let default_str = CellVis.cell_default
+    let alive_str = CellVis.cell_alive
+    let player_str = CellVis.player
+
+    (* Create grid from simple grid *)
+    let create_grid_vis (grid : Simple_grid.t) : t =
+        let ls = List.init (grid.height) ~f:( fun yi -> List.init grid.width ~f:( fun xi -> 
+            let coord : Simple_grid.coordinate = { x = xi; y = yi } in 
+            if Set.mem grid.cells coord then alive_str
+            else default_str
+        )) 
+        in
+        { cells = ls; width = grid.width; height = grid.height }
+
     let draw_col_labels (width : int) : unit =
         (* Front spacing for row labels *)
         let front_spacing = "  " in
@@ -63,62 +62,52 @@ struct
 
         print_string @@ num_str ^ "\n" ^ divider_str ^ "\n"
 
-    let get_index (grid : t) (row : int) (col : int) : int =
-        grid.width * row + col
+    let get_index (grid_vis : t) (row : int) (col : int) : int =
+        (List.length grid_vis.cells) * col + row
 
     (* Get the content of a specific cell *)
-    let get_cell (grid : t) (row : int) (col : int) : Cell.t =
+    let get_cell (grid_vis : t) (row : int) (col : int) : string =
         (* should eventually check if is out of bounds and do something *)
-        let row_hd = List.nth_exn grid.cells row in
+        let row_hd = List.nth_exn grid_vis.cells row in
         List.nth_exn row_hd col
 
-    let is_out_of_bounds (grid : t) (row : int) (col : int) : bool = 
-        if row < 0 || row >= grid.height || col < 0 || col >= grid.width then (
+    let is_out_of_bounds (grid_vis : t) (row : int) (col : int) : bool = 
+        (* Precondition check to make sure nested lists are the same length *)
+        List.iter grid_vis.cells ~f:(fun nested ->
+            assert (grid_vis.width = (List.length nested)) 
+        );
+
+        if row < 0 || row >= grid_vis.height || col < 0 || col >= grid_vis.width then (
             print_string "Cell position out of bounds"; true
         ) else false
 
-    let set_cell (grid : t) (row : int) (col : int) (value : Cell.t) : t = 
-        if is_out_of_bounds grid row col then grid 
-        else
-            let new_cells = 
-                List.mapi grid.cells ~f:(fun i row_hd ->
-                    if i = row then 
-                        List.mapi row_hd ~f:(fun j cell ->
-                            if j = col then value else cell
-                        )
-                    else row_hd
-                )
-            in
-            {grid with cells = new_cells}
 
-    let draw_grid (grid : t) : unit =
+    (* Setting cells should be handled in Simple_grid? *)
+    (* let set_cell (grid : t) (row : int) (col : int) (value : Cell.t) : t =  *)
+    (*     if is_out_of_bounds grid row col then grid  *)
+    (*     else *)
+    (*         let new_cells =  *)
+    (*             List.mapi grid.cells ~f:(fun i row_hd -> *)
+    (*                 if i = row then  *)
+    (*                     List.mapi row_hd ~f:(fun j cell -> *)
+    (*                         if j = col then value else cell *)
+    (*                     ) *)
+    (*                 else row_hd *)
+    (*             ) *)
+    (*         in *)
+    (*         {grid with cells = new_cells} *)
+
+
+    (* Takes in a Simple_grid, creates a grid_vis, and then prints it *)
+    let draw_grid (grid : Simple_grid.t) : unit =
+        let grid_vis = create_grid_vis grid in
 
         draw_col_labels grid.width;
 
-        let rec aux row_i =
+        List.iteri grid_vis.cells ~f:(fun row_i row -> 
+            print_string @@ (Int.to_string (row_i mod 10)) ^ "|"; (* Print row label *)
+            List.iter row ~f:(fun cell -> print_string cell);
+            print_string "\n"
 
-            let h = grid.height in
-            if row_i < h then begin
-                print_string @@ (Int.to_string (row_i mod 10)) ^ "|";
-                let row = List.init grid.width ~f:(fun col_i -> get_cell grid row_i col_i) in
-
-                List.iter row ~f:(fun cell ->
-                    print_string @@ Cell.to_string cell;
-                );
-                print_string "\n";
-                aux (row_i + 1)
-            end
-        in
-        aux 0
-end
-
-(* String Cell *)
-module StrCell : Cell = struct
-    type t = string [@@deriving sexp, compare, equal]
-    let default = ""
-    let to_string = String.to_string
-    let sexp_of_t = String.sexp_of_t
-    let t_of_sexp = String.t_of_sexp
-    let equal = String.equal
-    let compare = String.compare
+        )
 end

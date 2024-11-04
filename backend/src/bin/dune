@@ -7,5 +7,5 @@
     core_unix
     core_unix.sys_unix
     stdio
-    grid
+    game
     ))
