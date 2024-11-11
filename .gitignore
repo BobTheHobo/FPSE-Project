@@ -1,3 +1,14 @@
 _build/
 _coverage/
 *.coverage
+
+lib/
+.bs.js
+*.bs.js
+
+node_modules/
+
+.DS_Store
+.vscode/
+.idea/
+*.log

@@ -9,3 +9,13 @@
     stdio
     game
     ))
+
+(executable
+  (name server)
+  (libraries
+    core
+    core_unix
+    core_unix.sys_unix
+    stdio
+    dream)
+  (preprocess (pps lwt_ppx ppx_yojson_conv)))
