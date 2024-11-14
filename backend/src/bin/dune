@@ -13,6 +13,7 @@
 (executable
   (name server)
   (libraries
+    game
     core
     core_unix
     core_unix.sys_unix
