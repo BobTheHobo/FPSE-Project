@@ -30,7 +30,7 @@ struct
 
     let default_str = CellVis.cell_default
     let alive_str = CellVis.cell_alive
-    let player_str = CellVis.player
+    (* let player_str = CellVis.player *)
 
     (* Create grid from simple grid *)
     let create_grid_vis (grid : Simple_grid.t) : t =
@@ -61,9 +61,6 @@ struct
         in
 
         print_string @@ num_str ^ "\n" ^ divider_str ^ "\n"
-
-    let get_index (grid_vis : t) (row : int) (col : int) : int =
-        (List.length grid_vis.cells) * col + row
 
     (* Get the content of a specific cell *)
     let get_cell (grid_vis : t) (row : int) (col : int) : string =

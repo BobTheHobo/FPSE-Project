@@ -3,7 +3,10 @@
   (modules
     grid
     simple_grid
-    input)
+    input
+    pathfinding)
+  (modules_without_implementation
+    pathfinding)
   (preprocess
     (pps ppx_jane bisect_ppx))
   (libraries
