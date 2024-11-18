@@ -12,26 +12,26 @@ let random_el set =
   | None -> failwith "lol"
 
 let init_obstacles ~width ~height =
-  let first = { Simple_grid.x = Random.int width; y = Random.int height } in
-  let surrounding = Simple_grid.neighbors first ~width ~height in
+  let first = { Grid.Coordinate_key.x = Random.int width; y = Random.int height } in
+  let surrounding = Grid.neighbors first ~width ~height in
   let second = random_el surrounding in
   let removed = Set.remove surrounding second in
   let third = random_el removed in
   [ first; second; third ]
 
-let coordinate_to_pair_list (ls : Simple_grid.coordinate list) =
+let coordinate_to_pair_list (ls : Grid.Coordinate_key.t list) =
   List.map ls ~f:(fun { x; y } -> (x, y))
 
 let pair_to_coordinate_list (pairs : (int * int) list) =
-  List.map pairs ~f:(fun (x, y) -> { Simple_grid.x; y })
+  List.map pairs ~f:(fun (x, y) -> { Grid.Coordinate_key.x; y })
 
-let get_next_obstacles obstacles : Simple_grid.coordinate list =
+let get_next_obstacles obstacles : Grid.Coordinate_key.t list =
   match obstacles with
   | [] -> init_obstacles ~width:10 ~height:10
   | hd ->
-      let set = Simple_grid.Coordinate_set.of_list hd in
+      let set = Grid.Coordinate_set.of_list hd in
       let updated =
-        Simple_grid.next { Simple_grid.cells = set; width = 10; height = 10 }
+        Grid.next { Grid.cells = set; width = 10; height = 10 }
       in
       Set.to_list updated.cells
 
