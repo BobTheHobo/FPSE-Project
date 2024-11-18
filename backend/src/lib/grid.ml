@@ -1,11 +1,13 @@
 open Core
 
-module type Coordinate_key = sig
+module type Cell = sig
   type t = { x : int; y : int } [@@deriving sexp, compare, equal]
   val to_string : t -> string
+  val spawns : int -> bool
+  val survives : int -> bool
 end
 
-module Make (Key : Coordinate_key) = struct
+module Make (Key : Cell) = struct
   module Coordinate_set = Set.Make(Key)
 
   type t = { cells : Coordinate_set.t; width : int; height : int }
@@ -51,17 +53,17 @@ module Make (Key : Coordinate_key) = struct
   (** [survive_set curr] is the set of all cells in the current grid that have survived *)
   let survive_set ({ cells; width; height } : t) : Coordinate_set.t =
     Set.filter cells ~f:(fun coordinate ->
-        alive_neighbors coordinate { cells; width; height } |> fun alive_set ->
-        Set.length alive_set > 1 && Set.length alive_set < 4)
+      alive_neighbors coordinate { cells; width; height } |> fun alive_set ->
+      Set.length alive_set > 1 && Set.length alive_set < 4)
 
   (** [spawn_set curr] is the coordinate set of the newly spawned cells *)
   let spawn_set ({ cells; width; height } : t) : Coordinate_set.t =
     Set.fold cells ~init:Coordinate_set.empty ~f:(fun acc coord ->
-        let candidates = neighbors coord ~width ~height in
-        Set.fold candidates ~init:acc ~f:(fun acc candidate ->
-            let all_neighbors = neighbors candidate ~width ~height in
-            let alive_neighbors = Set.inter all_neighbors cells in
-            if Set.length alive_neighbors = 3 then Set.add acc candidate else acc))
+      let candidates = neighbors coord ~width ~height in
+      Set.fold candidates ~init:acc ~f:(fun acc candidate ->
+        let all_neighbors = neighbors candidate ~width ~height in
+        let alive_neighbors = Set.inter all_neighbors cells in
+        if Key.spawns (Set.length alive_neighbors) then Set.add acc candidate else acc))
 
   (** [next curr] is the new grid state given the curr state *)
   let next ({ cells; width; height } : t) : t =

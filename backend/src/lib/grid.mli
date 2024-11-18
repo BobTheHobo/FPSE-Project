@@ -1,11 +1,14 @@
 open Core
 
-module type Coordinate_key = sig
+module type Cell = sig
   type t = { x : int; y : int } [@@deriving sexp, compare, equal]
   val to_string : t -> string
+  
+  val spawns : int -> bool
+  val survives : int -> bool
 end
 
-module Make : functor (Key : Coordinate_key) -> sig
+module Make : functor (Key : Cell) -> sig
   module Coordinate_set : Set.S with type Elt.t := Key.t
   
   type t = { cells : Coordinate_set.t; width : int; height : int }
