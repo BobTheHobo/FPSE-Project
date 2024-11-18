@@ -1,110 +1,75 @@
 open Core
 
-(* Silence unused variable warning *)
-[@@@ocaml.warning "-27"]
+type coordinate = { x : int; y : int } [@@deriving sexp, compare, equal]
 
-(* Eventually use CellVis to specify what to use for the different ice/fire cells *)
-module type CellVis = sig
-    val cell_default : string (* String used for empty cells *)
-    val cell_alive : string (* String used for alive cells *)
-
-    val player : string (* String used for player *)
+module Coordinate_key = struct
+    type t = coordinate [@@deriving sexp, compare, equal]
+    let to_string (k : t) = Sexp.to_string (sexp_of_t k)
 end
 
-module ConwayCellVis : CellVis = 
-struct
-    let cell_default = " "
-    let cell_alive = "*"
-    let player = "!"
-end
+module Coordinate_set = struct 
+    include Set.Make(Coordinate_key)
+    let to_string (set : t) = Sexp.to_string (sexp_of_t set)
+end 
 
-(* Functor that uses a CellVis that specifies the strings to use for default and alive cells *)
-module MakeGridVis = functor (CellVis : CellVis) -> 
-struct
-    (* Visualized grid of of type string list list  *)
-    type t = { 
-        cells: string list list;
-        width : int;
-        height : int;
-    }
+type t = {
+    cells : Coordinate_set.t;
+    width : int;
+    height : int;
+}
+let empty = {
+    cells = Coordinate_set.empty;
+    width = -1;
+    height = -1
+}
 
-    let default_str = CellVis.cell_default
-    let alive_str = CellVis.cell_alive
-    (* let player_str = CellVis.player *)
+(** [in_bounds cell ~height ~width] if and only if cell.x >= 0 && cell.x < width, and cell.y >= 0 && cell.y < height *)
+let in_bounds ({ x; y } : coordinate) ~(width : int) ~(height : int) =
+    x >= 0 && x < width && y >= 0 && y < height
 
-    (* Create grid from simple grid *)
-    let create_grid_vis (grid : Simple_grid.t) : t =
-        let ls = List.init (grid.height) ~f:( fun yi -> List.init grid.width ~f:( fun xi -> 
-            let coord : Simple_grid.coordinate = { x = xi; y = yi } in 
-            if Set.mem grid.cells coord then alive_str
-            else default_str
-        )) 
-        in
-        { cells = ls; width = grid.width; height = grid.height }
+(** [surrounding cell] are simply the bottom 3, top 3, and left and right neighbors of cell without regards to the bounds *)
+let surrounding ({ x; y } : coordinate) : Coordinate_set.t = Coordinate_set.of_list [
+    { x; y = (y + 1) }; { x = (x + 1); y = (y + 1) }; { x = (x - 1); y = (y + 1) }; (* bottom 3 *)
+    { x = (x - 1); y }; { x = (x + 1); y }; (* left and right *)
+    { x; y = (y - 1) }; { x = (x + 1); y = (y - 1) }; { x = (x - 1); y = (y - 1) } (* top 3 *)
+]
 
-    let draw_col_labels (width : int) : unit =
-        (* Front spacing for row labels *)
-        let front_spacing = "  " in
+(** [neighbors cell ~width ~height] is the set of all cells that are neighbors of the given [cell] and 
+    satisfies [in_bounds cell ~width ~height]. *)
+let neighbors ({ x; y }: coordinate) ~(width : int) ~(height : int) : Coordinate_set.t =
+    if not (in_bounds { x; y } ~width ~height) then Coordinate_set.empty
+    else 
+        surrounding { x; y }
+        |> Set.filter ~f:(fun coord -> in_bounds coord ~width ~height)
 
-        let num_str : string = 
-            width
-            |> List.init ~f:(fun i -> Int.to_string @@ (i mod 10))
-            |> String.concat (* Combine numbers into one string *)
-            |> (^) front_spacing (* Add front spacing *)
-        in
+(** [alive_neighbors cell curr] is the set of coordinates that are currently within +-1 in the x and or y direction
+    of [cell] and is in [curr.cells] *)
+let alive_neighbors (cell : coordinate) ({ cells; width; height } : t) : Coordinate_set.t =
+    neighbors cell ~width ~height
+    |> Set.inter cells
 
-        let divider_str : string = 
-            width
-            |> List.init ~f:(fun _ -> "_")
-            |> String.concat (* Combine spacing chars *)
-            |> (^) front_spacing (* Add front spacing *)
-        in
+(** [survive_set curr] is the set of all cells in the current grid that have survived *)
+let survive_set ({ cells; width; height } : t) : Coordinate_set.t =
+    Set.filter cells ~f:(fun coordinate ->
+        alive_neighbors coordinate { cells; width; height }
+        |> fun alive_set -> 
+            Set.length alive_set > 1 && Set.length alive_set < 4
+    )
 
-        print_string @@ num_str ^ "\n" ^ divider_str ^ "\n"
+(** [spawn_set curr] is the coordinate set of the newly spawned cells *)
+let spawn_set ({ cells; width; height  } : t) : Coordinate_set.t =
+    Set.fold cells ~init:Coordinate_set.empty ~f:(fun acc coord ->
+        let candidates = neighbors coord ~width ~height in
+        Set.fold candidates ~init:(acc) ~f:(fun acc candidate ->
+            let all_neighbors = neighbors candidate ~width ~height in
+            let alive_neighbors = Set.inter all_neighbors cells in
+            if (Set.length alive_neighbors) = 3 then Set.add acc candidate
+            else acc
+        ) 
+    )
 
-    (* Get the content of a specific cell *)
-    let get_cell (grid_vis : t) (row : int) (col : int) : string =
-        (* should eventually check if is out of bounds and do something *)
-        let row_hd = List.nth_exn grid_vis.cells row in
-        List.nth_exn row_hd col
-
-    let is_out_of_bounds (grid_vis : t) (row : int) (col : int) : bool = 
-        (* Precondition check to make sure nested lists are the same length *)
-        List.iter grid_vis.cells ~f:(fun nested ->
-            assert (grid_vis.width = (List.length nested)) 
-        );
-
-        if row < 0 || row >= grid_vis.height || col < 0 || col >= grid_vis.width then (
-            print_string "Cell position out of bounds"; true
-        ) else false
-
-
-    (* Setting cells should be handled in Simple_grid? *)
-    (* let set_cell (grid : t) (row : int) (col : int) (value : Cell.t) : t =  *)
-    (*     if is_out_of_bounds grid row col then grid  *)
-    (*     else *)
-    (*         let new_cells =  *)
-    (*             List.mapi grid.cells ~f:(fun i row_hd -> *)
-    (*                 if i = row then  *)
-    (*                     List.mapi row_hd ~f:(fun j cell -> *)
-    (*                         if j = col then value else cell *)
-    (*                     ) *)
-    (*                 else row_hd *)
-    (*             ) *)
-    (*         in *)
-    (*         {grid with cells = new_cells} *)
-
-
-    (* Takes in a Simple_grid, creates a grid_vis, and then prints it *)
-    let draw_grid (grid : Simple_grid.t) : unit =
-        let grid_vis = create_grid_vis grid in
-
-        draw_col_labels grid.width;
-
-        List.iteri grid_vis.cells ~f:(fun row_i row -> 
-            print_string @@ (Int.to_string (row_i mod 10)) ^ "|"; (* Print row label *)
-            List.iter row ~f:(fun cell -> print_string cell);
-            print_string "\n"
-
-        )
-end
+(** [next curr] is the new grid state given the curr state *)
+let next ({ cells; width; height } : t) : t =
+    let spawned = spawn_set { cells; width; height } in
+    let survived = survive_set { cells; width; height } in
+    { cells = Set.union spawned survived; width; height }

@@ -2,11 +2,8 @@
   (name game)
   (modules
     grid
-    simple_grid
-    input
-    pathfinding)
-  (modules_without_implementation
-    pathfinding)
+    vis
+    input)
   (preprocess
     (pps ppx_jane bisect_ppx))
   (libraries
