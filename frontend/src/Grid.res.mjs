@@ -36,14 +36,21 @@ function Grid(props) {
       });
   var setObstacles = match$1[1];
   var obstacles = match$1[0];
+  var match$2 = React.useState(function () {
+        return true;
+      });
+  var setIsValidMove = match$2[1];
+  var isValidMove = match$2[0];
   var maxX = 9;
   var maxY = 9;
   var grid = Belt_Array.map(Belt_Array.make(10, undefined), (function () {
           return Belt_Array.make(10, 0);
         }));
   var fetchObstacles = function () {
+    if (!isValidMove) {
+      return ;
+    }
     var fetchCall = async function () {
-      console.log(obstacles);
       var response = await fetch("http://localhost:8080/get_obstacles", {
             method: "POST",
             body: Caml_option.some(Belt_Option.getExn(JSON.stringify({
@@ -77,7 +84,6 @@ function Grid(props) {
                   })), (function (pair) {
                 return pair;
               })) : [];
-      console.log(json_outd);
       return setObstacles(function (param) {
                   return json_outd;
                 });
@@ -86,44 +92,101 @@ function Grid(props) {
   };
   var onKeyDown = function (evt) {
     var key = evt.key;
+    console.log(position);
     switch (key) {
       case "ArrowDown" :
-          console.log("Move Down");
           setPosition(function (param) {
-                return [
-                        Math.min(param[0] + 1 | 0, maxX),
-                        param[1]
-                      ];
+                var y = param[1];
+                var x = param[0];
+                if ((x + 1 | 0) <= maxX) {
+                  setIsValidMove(function (param) {
+                        return true;
+                      });
+                  return [
+                          Math.min(x + 1 | 0, maxX),
+                          y
+                        ];
+                } else {
+                  setIsValidMove(function (param) {
+                        return false;
+                      });
+                  return [
+                          x,
+                          y
+                        ];
+                }
               });
           evt.preventDefault();
           return ;
       case "ArrowLeft" :
-          console.log("Move left");
           setPosition(function (param) {
-                return [
-                        param[0],
-                        Math.max(param[1] - 1 | 0, 0)
-                      ];
+                var y = param[1];
+                var x = param[0];
+                if ((y - 1 | 0) >= 0) {
+                  setIsValidMove(function (param) {
+                        return true;
+                      });
+                  return [
+                          x,
+                          Math.max(y - 1 | 0, 0)
+                        ];
+                } else {
+                  setIsValidMove(function (param) {
+                        return false;
+                      });
+                  return [
+                          x,
+                          y
+                        ];
+                }
               });
           evt.preventDefault();
           return ;
       case "ArrowRight" :
-          console.log("Move right");
           setPosition(function (param) {
-                return [
-                        param[0],
-                        Math.min(param[1] + 1 | 0, maxY)
-                      ];
+                var y = param[1];
+                var x = param[0];
+                if ((y + 1 | 0) <= maxY) {
+                  setIsValidMove(function (param) {
+                        return true;
+                      });
+                  return [
+                          x,
+                          Math.min(y + 1 | 0, maxY)
+                        ];
+                } else {
+                  setIsValidMove(function (param) {
+                        return false;
+                      });
+                  return [
+                          x,
+                          y
+                        ];
+                }
               });
           evt.preventDefault();
           return ;
       case "ArrowUp" :
-          console.log("Move up");
           setPosition(function (param) {
-                return [
-                        Math.max(param[0] - 1 | 0, 0),
-                        param[1]
-                      ];
+                var y = param[1];
+                var x = param[0];
+                if ((x - 1 | 0) >= 0) {
+                  setIsValidMove(function (param) {
+                        return true;
+                      });
+                  return [
+                          Math.max(x - 1 | 0, 0),
+                          y
+                        ];
+                } else {
+                  setIsValidMove(function (param) {
+                        return false;
+                      });
+                  return [
+                          x,
+                          y
+                        ];
+                }
               });
           evt.preventDefault();
           return ;

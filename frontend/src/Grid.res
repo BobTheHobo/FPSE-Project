@@ -20,6 +20,7 @@ let getColorClass = (state: int) => {
 let make = () => {
   let (position, setPosition) = useState(() => (0, 0))
   let (obstacles, setObstacles) = useState(() => [])
+  let (isValidMove, setIsValidMove) = useState(() => true)
   let gridSize = 10
   let maxX = gridSize - 1
   let maxY = gridSize - 1
@@ -27,70 +28,99 @@ let make = () => {
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
 
   let fetchObstacles = () => {
-    // setObstacles(old_obstacles => async () => {
+    if (isValidMove) {
+      let fetchCall = async () => {
+        let response = await fetch(
+          "http://localhost:8080/get_obstacles",
+          {
+            method: #POST,
+            body: {"obstacles": obstacles}->Js.Json.stringifyAny->Belt.Option.getExn->Body.string,
+            headers: Headers.fromObject({
+              "Content-type": "application/json",
+            }),
+          },
+        )
 
-    // })
-    let fetchCall = async () => {
-      Js.log(obstacles)
-      let response = await fetch(
-        "http://localhost:8080/get_obstacles",
-        {
-          method: #POST,
-          body: {"obstacles": obstacles}->Js.Json.stringifyAny->Belt.Option.getExn->Body.string,
-          headers: Headers.fromObject({
-            "Content-type": "application/json",
-          }),
-        },
-      )
-
-      let json_out = await response->Response.json
-      let json_outd = switch Js.Json.decodeArray(json_out) {
-      | Some(arrayData) =>
-          arrayData
-          -> Belt.Array.map(item =>
-              switch Js.Json.decodeArray(item) {
-              | Some([a, b]) =>
-                  switch (Js.Json.decodeNumber(a), Js.Json.decodeNumber(b)) {
-                  | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
-                  | _ => None
-                  }
-              | _ => None
-              })
-          -> Belt.Array.keepMap(pair => pair)
-      | None =>
-          []
+        let json_out = await response->Response.json
+        let json_outd = switch Js.Json.decodeArray(json_out) {
+        | Some(arrayData) =>
+            arrayData
+            -> Belt.Array.map(item =>
+                switch Js.Json.decodeArray(item) {
+                | Some([a, b]) =>
+                    switch (Js.Json.decodeNumber(a), Js.Json.decodeNumber(b)) {
+                    | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
+                    | _ => None
+                    }
+                | _ => None
+                })
+            -> Belt.Array.keepMap(pair => pair)
+        | None =>
+            []
+        }
+        setObstacles(_ => json_outd)
       }
-      Js.log(json_outd)
-      setObstacles(_ => json_outd)
-    }
 
-    fetchCall()
-    |> ignore
+      fetchCall()
+      |> ignore
+    }
   }
 
   let onKeyDown = evt => {
     let key = ReactEvent.Keyboard.key(evt)
 
+    Js.log(position)
     switch key {
     | "ArrowLeft" =>
-      Js.log("Move left")
-      setPosition(((x, y)) => (x, Js.Math.max_int(y - 1, 0)))
+      // Js.log("Move left")
+      setPosition(((x, y)) => {
+        if (y - 1 >= 0) {
+          setIsValidMove(_ => true)
+          (x, Js.Math.max_int(y - 1, 0))
+        } else {
+          setIsValidMove(_ => false)
+          (x, y)
+        }
+      })
       ReactEvent.Keyboard.preventDefault(evt)
     | "ArrowRight" =>
-      Js.log("Move right")
-      setPosition(((x, y)) => (x, Js.Math.min_int(y + 1, maxY)))
+      // Js.log("Move right")
+      setPosition(((x, y)) => {
+        if (y + 1 <= maxY) {
+          setIsValidMove(_ => true)
+          (x, Js.Math.min_int(y + 1, maxY))
+        } else {
+          setIsValidMove(_ => false)
+          (x, y)
+        }
+      })
       ReactEvent.Keyboard.preventDefault(evt)
     | "ArrowUp" =>
-      Js.log("Move up")
-      setPosition(((x, y)) => (Js.Math.max_int(x - 1, 0), y))
+      // Js.log("Move up")
+      setPosition(((x, y)) => {
+        if (x - 1 >= 0) {
+          setIsValidMove(_ => true)
+          (Js.Math.max_int(x - 1, 0), y)
+        } else {
+          setIsValidMove(_ => false)
+          (x, y)
+        }
+      })
       ReactEvent.Keyboard.preventDefault(evt)
     | "ArrowDown" =>
-      Js.log("Move Down")
-      setPosition(((x, y)) => (Js.Math.min_int(x + 1, maxX), y))
+      // Js.log("Move Down")
+      setPosition(((x, y)) => {
+        if (x + 1 <= maxX) {
+          setIsValidMove(_ => true)
+          (Js.Math.min_int(x + 1, maxX), y)
+        } else {
+          setIsValidMove(_ => false)
+          (x, y)
+        }
+      })
       ReactEvent.Keyboard.preventDefault(evt)
     | _ => ()
     }
-    // fetchObstacles()
   }
 
   React.useEffect(() => {
@@ -99,7 +129,6 @@ let make = () => {
   }, [position])
 
   React.useEffect(() => {
-    // fetchObstacles()
     addEventListener("keyup", onKeyDown)
     Some(() => {
       removeEventListener("keyup", onKeyDown)
