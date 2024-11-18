@@ -2,6 +2,13 @@ open Core
 open OUnit2
 open Game
 
+module Key = struct
+  type t = { x : int; y : int } [@@deriving sexp, compare, equal]
+  let to_string key = Sexp.to_string (sexp_of_t key)
+end
+
+module Grid = Grid.Make(Key)
+
 let loop (grid : Grid.t) (iter_limit : int) ~(f : Grid.t -> int -> unit) : unit
     =
   let rec next (prev : Grid.t) (n : int) =
@@ -16,7 +23,7 @@ let test_simple_next _ =
   let previous_cells =
     Grid.Coordinate_set.of_list
       [
-        { Grid.Coordinate_key.x = 0; y = 1 };
+        { Key.x = 0; y = 1 };
         { x = 0; y = 4 };
         { x = 2; y = 2 };
         { x = 2; y = 3 };

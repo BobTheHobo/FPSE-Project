@@ -16,11 +16,11 @@ module Make (Key : Coordinate_key) = struct
 
   (** [in_bounds cell ~height ~width] if and only if cell.x >= 0 && cell.x < width, and cell.y >= 0 && cell.y < height *)
 
-  let in_bounds ({ x; y } : Key.t) ~(width : int) ~(height : int) =
+  let in_bounds ({ x; y } : Coordinate_set.Elt.t) ~(width : int) ~(height : int) =
     x >= 0 && x < width && y >= 0 && y < height
 
   (** [surrounding cell] are simply the bottom 3, top 3, and left and right neighbors of cell without regards to the bounds *)
-  let surrounding ({ x; y } : Key.t) : Coordinate_set.t =
+  let surrounding ({ x; y } : Coordinate_set.Elt.t) : Coordinate_set.t =
     Coordinate_set.of_list
       [
         { x; y = y + 1 };
@@ -37,7 +37,7 @@ module Make (Key : Coordinate_key) = struct
 
   (** [neighbors cell ~width ~height] is the set of all cells that are neighbors of the given [cell] and 
       satisfies [in_bounds cell ~width ~height]. *)
-  let neighbors ({ x; y } : Key.t) ~(width : int) ~(height : int) : Coordinate_set.t =
+  let neighbors ({ x; y } : Coordinate_set.Elt.t) ~(width : int) ~(height : int) : Coordinate_set.t =
     if not (in_bounds { x; y } ~width ~height) then Coordinate_set.empty
     else
       surrounding { x; y }
@@ -45,7 +45,7 @@ module Make (Key : Coordinate_key) = struct
 
   (** [alive_neighbors cell curr] is the set of coordinates that are currently within +-1 in the x and or y direction
       of [cell] and is in [curr.cells] *)
-  let alive_neighbors (cell : Key.t) ({ cells; width; height } : t) : Coordinate_set.t =
+  let alive_neighbors (cell : Coordinate_set.Elt.t) ({ cells; width; height } : t) : Coordinate_set.t =
     neighbors cell ~width ~height |> Set.inter cells
 
   (** [survive_set curr] is the set of all cells in the current grid that have survived *)

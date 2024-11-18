@@ -3,6 +3,13 @@ open Dream
 open Game
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
+module Key = struct
+  type t = { x : int; y : int } [@@deriving sexp, compare, equal]
+  let to_string key = Sexp.to_string (sexp_of_t key)
+end
+
+module Base_game = Grid.Make(Key)
+
 type obstacle_object = { obstacles : (int * int) list } [@@deriving yojson]
 
 let random_el set =
@@ -12,26 +19,26 @@ let random_el set =
   | None -> failwith "lol"
 
 let init_obstacles ~width ~height =
-  let first = { Grid.Coordinate_key.x = Random.int width; y = Random.int height } in
-  let surrounding = Grid.neighbors first ~width ~height in
+  let first = { Base_game.cells = Random.int width; y = Random.int height } in
+  let surrounding = Base_game.neighbors first ~width ~height in
   let second = random_el surrounding in
   let removed = Set.remove surrounding second in
   let third = random_el removed in
   [ first; second; third ]
 
-let coordinate_to_pair_list (ls : Grid.Coordinate_key.t list) =
-  List.map ls ~f:(fun { x; y } -> (x, y))
+let coordinate_to_pair_list (ls : Key.t list) =
+  List.map ls ~f:(fun { Key.x; y } -> (x, y))
 
 let pair_to_coordinate_list (pairs : (int * int) list) =
-  List.map pairs ~f:(fun (x, y) -> { Grid.Coordinate_key.x; y })
+  List.map pairs ~f:(fun (x, y) -> { Key.x ; y })
 
-let get_next_obstacles obstacles : Grid.Coordinate_key.t list =
+let get_next_obstacles obstacles : Key.t list =
   match obstacles with
   | [] -> init_obstacles ~width:10 ~height:10
   | hd ->
-      let set = Grid.Coordinate_set.of_list hd in
+      let set = Base_game.Coordinate_set.of_list hd in
       let updated =
-        Grid.next { Grid.cells = set; width = 10; height = 10 }
+        Base_game.next { Base_game.cells = set; width = 10; height = 10 }
       in
       Set.to_list updated.cells
 
