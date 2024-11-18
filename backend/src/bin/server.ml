@@ -12,19 +12,27 @@ module Base_game = Grid.Make(Key)
 
 type obstacle_object = { obstacles : (int * int) list } [@@deriving yojson]
 
-let random_el set =
-  let len = Set.length set in
-  Set.nth set (Random.int len) |> function
-  | Some el -> el
-  | None -> failwith "lol"
 
-let init_obstacles ~width ~height =
-  let first = { Key.x = Random.int width; y = Random.int height } in
-  let surrounding = Base_game.neighbors first ~width ~height in
-  let second = random_el surrounding in
-  let removed = Set.remove surrounding second in
-  let third = random_el removed in
-  [ first; second; third ]
+let init_obstacles ~(width : int) ~(height : int) : Key.t list = 
+  let start : Key.t = { Key.x = Random.int (width-6) + 3; y = Random.int (height-6) + 3 } in
+  let choice_1 : bool = Random.int 10 % 2 = 0 in
+  let choice_2 : int = if Random.int 10 % 2 = 0 then 1 else -1 in
+  let choice_3 : int = if Random.int 10 % 2 = 0 then 1 else -1 in
+  start ::
+  if choice_1 then
+    [
+      { Key.x = start.x + 1; y = start.y };
+      { Key.x = start.x - 1; y = start.y };
+      { Key.x = start.x; y = start.y + choice_2 };
+      { Key.x = start.x + choice_3; y = start.y + (choice_2 * -1) }
+    ]
+  else
+    [
+      { Key.x = start.x; y = start.y + 1 };
+      { Key.x = start.x; y = start.y - 1 };
+      { Key.x = start.x + choice_2; y = start.y };
+      { Key.x = start.x + (choice_2 * -1); y = start.y + choice_3 }
+    ]
 
 let coordinate_to_pair_list (ls : Key.t list) =
   List.map ls ~f:(fun { Key.x; y } -> (x, y))
