@@ -1,9 +1,6 @@
 (test
-  (name tests)
-  (modules tests)
-  (libraries
-    core
-    ounit2
-    game
-  )
-  (preprocess (pps ppx_jane)))
+ (name tests)
+ (modules tests)
+ (libraries core ounit2 game)
+ (preprocess
+  (pps ppx_jane)))

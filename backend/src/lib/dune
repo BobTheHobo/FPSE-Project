@@ -1,13 +1,6 @@
 (library
-  (name game)
-  (modules
-    grid
-    vis
-    input)
-  (preprocess
-    (pps ppx_jane bisect_ppx))
-  (libraries
-    core_unix
-    core_unix.sys_unix
-    str
-    core))
+ (name game)
+ (modules grid vis input)
+ (preprocess
+  (pps ppx_jane bisect_ppx))
+ (libraries core_unix core_unix.sys_unix str core))
