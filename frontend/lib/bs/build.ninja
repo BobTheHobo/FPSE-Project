@@ -1,0 +1,39 @@
+rescript = 1
+g_finger := /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/core/lib/ocaml/install.stamp
+g_finger := /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/react/lib/ocaml/install.stamp
+g_finger := /home/bathan1/dev/FPSE-Project/frontend/node_modules/@glennsl/rescript-fetch/lib/ocaml/install.stamp
+rule astj
+  command = /home/bathan1/dev/FPSE-Project/frontend/node_modules/.pnpm/rescript@11.1.4/node_modules/rescript/linux/bsc.exe  -bs-v 11.1.4 -bs-jsx 4 -uncurried -open RescriptCore -absname -bs-ast -o $out $i
+o src/App.ast : astj ../../src/App.res
+rule deps
+  command = /home/bathan1/dev/FPSE-Project/frontend/node_modules/.pnpm/rescript@11.1.4/node_modules/rescript/linux/bsb_helper.exe -hash d519f9f84e9b6f414deedd6114787432 $in
+  restat = 1
+o src/App.d : deps src/App.ast src/App.iast
+o src/App.iast : astj ../../src/App.resi
+rule mi
+  command = /home/bathan1/dev/FPSE-Project/frontend/node_modules/.pnpm/rescript@11.1.4/node_modules/rescript/linux/bsc.exe -I src/assets -I src -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/core/lib/ocaml -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/react/lib/ocaml -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@glennsl/rescript-fetch/lib/ocaml -open RescriptCore  -uncurried -bs-v $g_finger $i
+  dyndep = 1
+  restat = 1
+o src/App.cmi : mi src/App.iast
+rule mj
+  command = /home/bathan1/dev/FPSE-Project/frontend/node_modules/.pnpm/rescript@11.1.4/node_modules/rescript/linux/bsc.exe -bs-read-cmi -I src/assets -I src -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/core/lib/ocaml -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/react/lib/ocaml -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@glennsl/rescript-fetch/lib/ocaml -open RescriptCore  -uncurried -bs-package-name webtest-2 -bs-package-output esmodule:$in_d:.res.mjs -bs-v $g_finger $i
+  dyndep = 1
+  restat = 1
+o src/App.cmj ../../src/App.res.mjs : mj src/App.ast src/App.cmi
+o src/Grid.ast : astj ../../src/Grid.res
+o src/Grid.d : deps src/Grid.ast src/Grid.iast
+o src/Grid.iast : astj ../../src/Grid.resi
+o src/Grid.cmi : mi src/Grid.iast
+o src/Grid.cmj ../../src/Grid.res.mjs : mj src/Grid.ast src/Grid.cmi
+o src/Main.ast : astj ../../src/Main.res
+o src/Main.d : deps src/Main.ast
+rule mij
+  command = /home/bathan1/dev/FPSE-Project/frontend/node_modules/.pnpm/rescript@11.1.4/node_modules/rescript/linux/bsc.exe -I src/assets -I src -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/core/lib/ocaml -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/react/lib/ocaml -I /home/bathan1/dev/FPSE-Project/frontend/node_modules/@glennsl/rescript-fetch/lib/ocaml -open RescriptCore  -uncurried -bs-package-name webtest-2 -bs-package-output esmodule:$in_d:.res.mjs -bs-v $g_finger $i
+  dyndep = 1
+  restat = 1
+o src/Main.cmj src/Main.cmi ../../src/Main.res.mjs : mij src/Main.ast
+o src/Button.ast : astj ../../src/Button.res
+o src/Button.d : deps src/Button.ast src/Button.iast
+o src/Button.iast : astj ../../src/Button.resi
+o src/Button.cmi : mi src/Button.iast
+o src/Button.cmj ../../src/Button.res.mjs : mj src/Button.ast src/Button.cmi

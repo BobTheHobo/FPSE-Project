@@ -1,0 +1,1 @@
+{ "dirs" : [ "src" , "src/assets" ] , "pkgs" : [ [ "@glennsl/rescript-fetch" , "/home/bathan1/dev/FPSE-Project/frontend/node_modules/@glennsl/rescript-fetch" ] , [ "@rescript/core" , "/home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/core" ] , [ "@rescript/react" , "/home/bathan1/dev/FPSE-Project/frontend/node_modules/@rescript/react" ] ] , "generated" : [] }

@@ -2,7 +2,6 @@ _build/
 _coverage/
 *.coverage
 
-lib/
 .bs.js
 *.bs.js
 

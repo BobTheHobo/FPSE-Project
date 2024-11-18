@@ -1,0 +1,28 @@
+rescript = 1
+rule cp
+  command = cp $i $out
+rule touch
+ command = touch $out
+o App.cmi : cp ../bs/src/App.cmi
+o App.cmj : cp ../bs/src/App.cmj
+o App.cmt : cp ../bs/src/App.cmt
+o App.res : cp ../../src/App.res
+o App.resi : cp ../../src/App.resi
+o App.cmti : cp ../bs/src/App.cmti
+o Grid.cmi : cp ../bs/src/Grid.cmi
+o Grid.cmj : cp ../bs/src/Grid.cmj
+o Grid.cmt : cp ../bs/src/Grid.cmt
+o Grid.res : cp ../../src/Grid.res
+o Grid.resi : cp ../../src/Grid.resi
+o Grid.cmti : cp ../bs/src/Grid.cmti
+o Main.cmi : cp ../bs/src/Main.cmi
+o Main.cmj : cp ../bs/src/Main.cmj
+o Main.cmt : cp ../bs/src/Main.cmt
+o Main.res : cp ../../src/Main.res
+o Button.cmi : cp ../bs/src/Button.cmi
+o Button.cmj : cp ../bs/src/Button.cmj
+o Button.cmt : cp ../bs/src/Button.cmt
+o Button.res : cp ../../src/Button.res
+o Button.resi : cp ../../src/Button.resi
+o Button.cmti : cp ../bs/src/Button.cmti
+build install.stamp : touch App.cmi App.cmj Grid.cmi Grid.cmj Main.cmi Main.cmj Button.cmi Button.cmj 
