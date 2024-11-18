@@ -16,7 +16,7 @@ let test_simple_next _ =
   let previous_cells =
     Grid.Coordinate_set.of_list
       [
-        { Grid.x = 0; y = 1 };
+        { Grid.Coordinate_key.x = 0; y = 1 };
         { x = 0; y = 4 };
         { x = 2; y = 2 };
         { x = 2; y = 3 };

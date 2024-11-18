@@ -1,9 +1,7 @@
 open Core
 
-type coordinate = { x : int; y : int } [@@deriving sexp, compare, equal]
-
 module Coordinate_key = struct
-  type t = coordinate [@@deriving sexp, compare, equal]
+  type t = { x : int; y : int } [@@deriving sexp, compare, equal]
 
   let to_string (k : t) = Sexp.to_string (sexp_of_t k)
 end
@@ -19,11 +17,11 @@ type t = { cells : Coordinate_set.t; width : int; height : int }
 let empty = { cells = Coordinate_set.empty; width = -1; height = -1 }
 
 (** [in_bounds cell ~height ~width] if and only if cell.x >= 0 && cell.x < width, and cell.y >= 0 && cell.y < height *)
-let in_bounds ({ x; y } : coordinate) ~(width : int) ~(height : int) =
+let in_bounds ({ x; y } : Coordinate_key.t) ~(width : int) ~(height : int) =
   x >= 0 && x < width && y >= 0 && y < height
 
 (** [surrounding cell] are simply the bottom 3, top 3, and left and right neighbors of cell without regards to the bounds *)
-let surrounding ({ x; y } : coordinate) : Coordinate_set.t =
+let surrounding ({ x; y } : Coordinate_key.t) : Coordinate_set.t =
   Coordinate_set.of_list
     [
       { x; y = y + 1 };
@@ -40,7 +38,7 @@ let surrounding ({ x; y } : coordinate) : Coordinate_set.t =
 
 (** [neighbors cell ~width ~height] is the set of all cells that are neighbors of the given [cell] and 
     satisfies [in_bounds cell ~width ~height]. *)
-let neighbors ({ x; y } : coordinate) ~(width : int) ~(height : int) : Coordinate_set.t =
+let neighbors ({ x; y } : Coordinate_key.t) ~(width : int) ~(height : int) : Coordinate_set.t =
   if not (in_bounds { x; y } ~width ~height) then Coordinate_set.empty
   else
     surrounding { x; y }
@@ -48,7 +46,7 @@ let neighbors ({ x; y } : coordinate) ~(width : int) ~(height : int) : Coordinat
 
 (** [alive_neighbors cell curr] is the set of coordinates that are currently within +-1 in the x and or y direction
     of [cell] and is in [curr.cells] *)
-let alive_neighbors (cell : coordinate) ({ cells; width; height } : t) : Coordinate_set.t =
+let alive_neighbors (cell : Coordinate_key.t) ({ cells; width; height } : t) : Coordinate_set.t =
   neighbors cell ~width ~height |> Set.inter cells
 
 (** [survive_set curr] is the set of all cells in the current grid that have survived *)
