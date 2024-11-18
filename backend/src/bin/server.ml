@@ -19,7 +19,7 @@ let random_el set =
   | None -> failwith "lol"
 
 let init_obstacles ~width ~height =
-  let first = { Base_game.cells = Random.int width; y = Random.int height } in
+  let first = { Key.x = Random.int width; y = Random.int height } in
   let surrounding = Base_game.neighbors first ~width ~height in
   let second = random_el surrounding in
   let removed = Set.remove surrounding second in
