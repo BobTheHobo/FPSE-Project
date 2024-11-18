@@ -5,6 +5,8 @@ _coverage/
 .bs.js
 *.bs.js
 
+frontend/lib/
+dist/
 node_modules/
 
 .DS_Store
