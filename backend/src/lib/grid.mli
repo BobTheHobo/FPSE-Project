@@ -4,8 +4,10 @@ module type Cell = sig
   type t = { x : int; y : int } [@@deriving sexp, compare, equal]
   val to_string : t -> string
   
-  val spawns : int -> bool
-  val survives : int -> bool
+  val b : int
+  
+  val s1 : int
+  val s2 : int
 end
 
 module Make : functor (Key : Cell) -> sig
