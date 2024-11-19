@@ -1,6 +1,7 @@
-open Belt.Array
-open React
 open Fetch
+open React
+open Belt.Array
+open Js.Json
 
 
 @val external addEventListener: (string, ReactEvent.Keyboard.t => unit) => unit = "document.addEventListener"
@@ -9,17 +10,37 @@ open Fetch
 let getColorClass = (state: int) => {
   switch state {
   | 0 => "traversable"
-  | 1 => "player"
-  | 2 => "obstacle"
-  | 3 => "goal"
+  | 1 => "goal"
+  | 2 => "player"
+  | 3 => "fire"
+  | 4 => "ice"
   | _ => "default"
   }
 }
 
+let decode_obstacles = obstacle_array => switch decodeArray(obstacle_array) {
+| Some(arrayData) =>
+    arrayData
+    -> map(item =>
+        switch decodeArray(item) {
+        | Some([a, b]) =>
+            switch (decodeNumber(a), decodeNumber(b)) {
+            | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
+            | _ => None
+            }
+        | _ => None
+        })
+    -> keepMap(pair => pair)
+| None =>
+    []
+}
+
+
 @react.component
 let make = () => {
   let (position, setPosition) = useState(() => (0, 0))
-  let (obstacles, setObstacles) = useState(() => [])
+  let (fire, setFire) = useState(() => [])
+  let (ice, setIce) = useState(() => [])
   let (isValidMove, setIsValidMove) = useState(() => true)
   let gridSize = 10
   let maxX = gridSize - 1
@@ -34,7 +55,7 @@ let make = () => {
           "http://localhost:8080/get_obstacles",
           {
             method: #POST,
-            body: {"obstacles": obstacles}->Js.Json.stringifyAny->Belt.Option.getExn->Body.string,
+            body: {"fire": fire, "ice": ice}->stringifyAny->Belt.Option.getExn->Body.string,
             headers: Headers.fromObject({
               "Content-type": "application/json",
             }),
@@ -42,23 +63,15 @@ let make = () => {
         )
 
         let json_out = await response->Response.json
-        let json_outd = switch Js.Json.decodeArray(json_out) {
-        | Some(arrayData) =>
-            arrayData
-            -> Belt.Array.map(item =>
-                switch Js.Json.decodeArray(item) {
-                | Some([a, b]) =>
-                    switch (Js.Json.decodeNumber(a), Js.Json.decodeNumber(b)) {
-                    | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
-                    | _ => None
-                    }
-                | _ => None
-                })
-            -> Belt.Array.keepMap(pair => pair)
-        | None =>
-            []
+        let dict_out = switch decodeObject(json_out) {
+        | Some(dict_data) => dict_data
+        | None => let dict_data = Js.Dict.empty()
+          Js.Dict.set(dict_data, "fire", Js.Json.Array([]))
+          Js.Dict.set(dict_data, "ice", Js.Json.Array([]))
+          dict_data
         }
-        setObstacles(_ => json_outd)
+        setFire(_ => dict_out->Js.Dict.unsafeGet("fire")->decode_obstacles)
+        setIce(_ => dict_out->Js.Dict.unsafeGet("ice")->decode_obstacles)
       }
 
       fetchCall()
@@ -137,11 +150,14 @@ let make = () => {
 
  
   let (x, y) = position
-  grid->getExn(x)->setExn(y, 1)
-  grid->getExn(maxX)->setExn(maxY, 3)
-  obstacles->Belt.Array.forEach(pos => {
+  grid->getExn(maxX)->setExn(maxY, 1)
+  grid->getExn(x)->setExn(y, 2)
+  fire->forEach(pos => {
         let (x, y) = pos
-        grid->getExn(x)->setExn(y, 2)})
+        grid->getExn(x)->setExn(y, 3)})
+  ice->forEach(pos => {
+        let (x, y) = pos
+        grid->getExn(x)->setExn(y, 4)})
 
   <div className="grid">
     {grid

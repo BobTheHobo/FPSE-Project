@@ -22,8 +22,12 @@
     background-color: orange;
 }
 
-.obstacle {
+.fire {
     background-color: red;
+}
+
+.ice {
+    background-color: rgb(87, 182, 241);
 }
 
 .goal {
