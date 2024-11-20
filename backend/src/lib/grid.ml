@@ -74,5 +74,8 @@ module Make (Key : Cell) = struct
     let spawned = spawn_set { cells; width; height } in
     let survived = survive_set { cells; width; height } in
     { cells = Set.union spawned survived; width; height }
-  
+    
+  let create (init : Key.t list) ~width ~height =
+    let cells = Coordinate_set.of_list init in
+    { cells; width; height }
 end

@@ -22,4 +22,5 @@ module Make : functor (Key : Cell) -> sig
   val neighbors : Key.t -> width : int -> height : int -> Coordinate_set.t
   
   val next : t -> t
+  val create : Key.t list -> width : int -> height : int -> t
 end
