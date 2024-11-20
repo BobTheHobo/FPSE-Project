@@ -7,6 +7,10 @@ module Key = struct
   type t = { x : int; y : int } [@@deriving sexp, compare, equal]
 
   let to_string key = Sexp.to_string (sexp_of_t key)
+  
+  let b = 3
+  let s1 = 2
+  let s2 = 3
 end
 
 module Base_game = Grid.Make (Key)

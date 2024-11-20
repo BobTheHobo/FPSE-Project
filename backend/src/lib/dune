@@ -1,6 +1,6 @@
 (library
  (name game)
- (modules grid base_cell vis input)
+ (modules grid base_cell vis input fire_ice)
  (preprocess
   (pps ppx_jane bisect_ppx))
  (libraries core_unix core_unix.sys_unix str core))

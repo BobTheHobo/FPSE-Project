@@ -10,9 +10,12 @@ let example_grid = { Base_grid.cells = example_cells; width = 5; height = 5 }
 
 let blinker_cells =
   Base_grid.Coordinate_set.of_list
-    [ { x = 2; y = 1 }; { x = 2; y = 2 }; { x = 2; y = 3 } ]
+    [ 
+      { x = 2; y = 1 }; { x = 2; y = 2 }; { x = 2; y = 3 };
+      { x = 4; y = 1 }; { x = 4; y = 2 }; { x = 4; y = 3 };
+    ]
 
-let blinker_grid = { Base_grid.cells = blinker_cells; width = 5; height = 5 }
+let blinker_grid = { Base_grid.cells = blinker_cells; width = 10; height = 10 }
 
 module GridVis = Vis.MakeGridVis (Vis.ConwayCellVis)
 
