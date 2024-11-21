@@ -14,7 +14,7 @@ end
 
 module Base_game = Grid.Make(Key)
 
-type obstacle_object = { obstacles : (int * int) list } [@@deriving yojson]
+type obstacle_object = { obstacles : (int * int) list; player : (int * int) } [@@deriving yojson]
 
 let random_el set =
   let len = Set.length set in
@@ -30,21 +30,24 @@ let init_obstacles ~width ~height =
   let third = random_el removed in
   [ first; second; third ]
 
+let pair_to_coordinate ((x, y) : (int * int)) = { Key.x; y }
+
 let coordinate_to_pair_list (ls : Key.t list) =
   List.map ls ~f:(fun { Key.x; y } -> (x, y))
 
 let pair_to_coordinate_list (pairs : (int * int) list) =
   List.map pairs ~f:(fun (x, y) -> { Key.x ; y })
 
-let get_next_obstacles obstacles : Key.t list =
+let get_next_obstacles (obstacles : Key.t list) (player : Key.t) : (Key.t list * bool) =
   match obstacles with
   | [] -> init_obstacles ~width:10 ~height:10
+          |> fun ls -> (ls, true)
   | hd ->
       let set = Base_game.Coordinate_set.of_list hd in
-      let updated =
+      let { Base_game.cells; _ } =
         Base_game.next { Base_game.cells = set; width = 10; height = 10 }
-      in
-      Set.to_list updated.cells
+      in let is_dead = (Set.mem cells player) in
+      (Set.to_list cells, is_dead)
 
 let () =
   run @@ logger
@@ -53,14 +56,17 @@ let () =
          get "/" (fun _ -> html "Welcome to the Game!");
          post "/get_obstacles" (fun request ->
              let%lwt body = body request in
+              Dream.log "body: %s\n" body;
              let obstacle_object =
                body |> Yojson.Safe.from_string |> obstacle_object_of_yojson
              in
-             obstacle_object.obstacles |> pair_to_coordinate_list
-             |> get_next_obstacles |> coordinate_to_pair_list
+             obstacle_object.obstacles
+             |> pair_to_coordinate_list
+             |> fun coordinate_ls -> get_next_obstacles coordinate_ls (pair_to_coordinate obstacle_object.player)
+             |> fun (next_state, is_dead) -> coordinate_to_pair_list next_state
              |> List.map ~f:(fun (x, y) -> Printf.sprintf "[%d, %d]" x y)
              |> (fun a -> String.concat a ~sep:", ")
-             |> Printf.sprintf "[%s]"
+             |> fun obstacles_encoded -> Printf.sprintf "{ \"obstacles\": [%s], \"is_dead\": %s }" obstacles_encoded (Bool.to_string is_dead)
              |> respond
                   ~headers:
                     [

@@ -25,6 +25,37 @@ let make = () => {
   let maxY = gridSize - 1
 
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
+  
+  let decodeBool = someval => switch Js.Dict.get(record, "is_dead") {
+      | Some(value) => Js.Json.decodeBoolean(value)->Belt.Option.getWithDefault(false)
+      | None => false
+      }
+  
+  let decodeObstacles = record => switch Js.Dict.get(record, "obstacles") {
+    | Some(value) => switch Js.Json.decodeArray(value) {
+      | Some (array) => array->Belt.Array.keepMap(e1 =>
+        switch Js.Json.decodeArray(e1) {
+        | Some([x, y]) =>
+              switch (Js.Json.decodeNumber(x), Js.Json.decodeNumber(y)) {
+              | (Some(x), Some(y)) => Some((x->Js.Math.truncate, y->Js.Math.truncate))
+              | _ => None
+              }
+            | _ => None
+        }
+      )
+      | None => None
+    }
+    | None => None
+  }
+  
+  let decodeObject = json => {
+    switch Js.Json.decodeObject(json) {
+      | Some(record) =>
+        let decodedObstacles = decodeObstacles(record);
+        let decodedBoolean = decodeBool(record);
+      | None => None
+    }
+  }
 
   let fetchObstacles = () => {
     // setObstacles(old_obstacles => async () => {
@@ -36,7 +67,10 @@ let make = () => {
         "http://localhost:8080/get_obstacles",
         {
           method: #POST,
-          body: {"obstacles": obstacles}->Js.Json.stringifyAny->Belt.Option.getExn->Body.string,
+          body: {
+            "obstacles": obstacles,
+            "player": position,
+          }->Js.Json.stringifyAny->Belt.Option.getExn->Body.string,
           headers: Headers.fromObject({
             "Content-type": "application/json",
           }),
@@ -84,7 +118,7 @@ let make = () => {
       Js.log("Move up")
       setPosition(((x, y)) => (Js.Math.max_int(x - 1, 0), y))
       ReactEvent.Keyboard.preventDefault(evt)
-    | "ArrowDown" =>
+    decodeObject
       Js.log("Move Down")
       setPosition(((x, y)) => (Js.Math.min_int(x + 1, maxX), y))
       ReactEvent.Keyboard.preventDefault(evt)

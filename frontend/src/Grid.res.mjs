@@ -47,7 +47,8 @@ function Grid(props) {
       var response = await fetch("http://localhost:8080/get_obstacles", {
             method: "POST",
             body: Caml_option.some(Belt_Option.getExn(JSON.stringify({
-                          obstacles: obstacles
+                          obstacles: obstacles,
+                          player: position
                         }))),
             headers: Caml_option.some(new Headers({
                       "Content-type": "application/json"
