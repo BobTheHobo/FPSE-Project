@@ -41,7 +41,7 @@ let pair_to_coordinate_list (pairs : (int * int) list) =
 let get_next_obstacles (obstacles : Key.t list) (player : Key.t) : (Key.t list * bool) =
   match obstacles with
   | [] -> init_obstacles ~width:10 ~height:10
-          |> fun ls -> (ls, true)
+          |> fun ls -> (ls, false)
   | hd ->
       let set = Base_game.Coordinate_set.of_list hd in
       let { Base_game.cells; _ } =

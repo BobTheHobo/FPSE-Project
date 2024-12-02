@@ -27,9 +27,6 @@ let make = () => {
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
 
   let fetchObstacles = () => {
-    // setObstacles(old_obstacles => async () => {
-
-    // })
     let fetchCall = async () => {
       Js.log(obstacles)
       let response = await fetch(
@@ -52,6 +49,7 @@ let make = () => {
       }
 
       let json_out = await response->Response.json
+      Js.log(json_out)
       let json_outd = switch Js.Json.decodeObject(json_out) {
       | Some(objectData) =>
           let isDeadEncoded = Js.Dict.unsafeGet(objectData, "is_dead")

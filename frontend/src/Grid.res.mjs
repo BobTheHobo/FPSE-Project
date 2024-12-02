@@ -63,6 +63,7 @@ function Grid(props) {
         }
       };
       var json_out = await response.json();
+      console.log(json_out);
       var objectData = Js_json.decodeObject(json_out);
       var json_outd;
       if (objectData !== undefined) {
