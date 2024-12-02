@@ -54,30 +54,56 @@ function Grid(props) {
                       "Content-type": "application/json"
                     }))
           });
+      var getBool = function (encoded) {
+        var value = Js_json.decodeBoolean(encoded);
+        if (value !== undefined) {
+          return value;
+        } else {
+          return true;
+        }
+      };
       var json_out = await response.json();
-      var arrayData = Js_json.decodeArray(json_out);
-      var json_outd = arrayData !== undefined ? Belt_Array.keepMap(Belt_Array.map(arrayData, (function (item) {
-                    var match = Js_json.decodeArray(item);
-                    if (match === undefined) {
-                      return ;
-                    }
-                    if (match.length !== 2) {
-                      return ;
-                    }
-                    var a = match[0];
-                    var b = match[1];
-                    var match$1 = Js_json.decodeNumber(a);
-                    var match$2 = Js_json.decodeNumber(b);
-                    if (match$1 !== undefined && match$2 !== undefined) {
-                      return [
-                              match$1 | 0,
-                              match$2 | 0
-                            ];
-                    }
-                    
-                  })), (function (pair) {
-                return pair;
-              })) : [];
+      var objectData = Js_json.decodeObject(json_out);
+      var json_outd;
+      if (objectData !== undefined) {
+        var isDeadEncoded = objectData["is_dead"];
+        var isDead = getBool(isDeadEncoded);
+        if (isDead) {
+          setPosition(function (param) {
+                return [
+                        0,
+                        0
+                      ];
+              });
+          json_outd = [];
+        } else {
+          var arr = Js_json.decodeArray(objectData["obstacles"]);
+          json_outd = arr !== undefined ? Belt_Array.keepMap(Belt_Array.map(arr, (function (item) {
+                        var match = Js_json.decodeArray(item);
+                        if (match === undefined) {
+                          return ;
+                        }
+                        if (match.length !== 2) {
+                          return ;
+                        }
+                        var a = match[0];
+                        var b = match[1];
+                        var match$1 = Js_json.decodeNumber(a);
+                        var match$2 = Js_json.decodeNumber(b);
+                        if (match$1 !== undefined && match$2 !== undefined) {
+                          return [
+                                  match$1 | 0,
+                                  match$2 | 0
+                                ];
+                        }
+                        
+                      })), (function (pair) {
+                    return pair;
+                  })) : [];
+        }
+      } else {
+        json_outd = [];
+      }
       console.log(json_outd);
       return setObstacles(function (param) {
                   return json_outd;

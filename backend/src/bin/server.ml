@@ -67,6 +67,7 @@ let () =
              |> List.map ~f:(fun (x, y) -> Printf.sprintf "[%d, %d]" x y)
              |> (fun a -> String.concat a ~sep:", ")
              |> fun obstacles_encoded -> Printf.sprintf "{ \"obstacles\": [%s], \"is_dead\": %s }" obstacles_encoded (Bool.to_string is_dead)
+             |> fun encoded -> Dream.log "HERE %s\n" encoded; encoded
              |> respond
                   ~headers:
                     [

@@ -25,37 +25,6 @@ let make = () => {
   let maxY = gridSize - 1
 
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
-  
-  let decodeBool = someval => switch Js.Dict.get(record, "is_dead") {
-      | Some(value) => Js.Json.decodeBoolean(value)->Belt.Option.getWithDefault(false)
-      | None => false
-      }
-  
-  let decodeObstacles = record => switch Js.Dict.get(record, "obstacles") {
-    | Some(value) => switch Js.Json.decodeArray(value) {
-      | Some (array) => array->Belt.Array.keepMap(e1 =>
-        switch Js.Json.decodeArray(e1) {
-        | Some([x, y]) =>
-              switch (Js.Json.decodeNumber(x), Js.Json.decodeNumber(y)) {
-              | (Some(x), Some(y)) => Some((x->Js.Math.truncate, y->Js.Math.truncate))
-              | _ => None
-              }
-            | _ => None
-        }
-      )
-      | None => None
-    }
-    | None => None
-  }
-  
-  let decodeObject = json => {
-    switch Js.Json.decodeObject(json) {
-      | Some(record) =>
-        let decodedObstacles = decodeObstacles(record);
-        let decodedBoolean = decodeBool(record);
-      | None => None
-    }
-  }
 
   let fetchObstacles = () => {
     // setObstacles(old_obstacles => async () => {
@@ -76,23 +45,36 @@ let make = () => {
           }),
         },
       )
+      
+      let getBool = encoded => switch Js.Json.decodeBoolean(encoded) {
+        | Some(value) => value
+        | None => true
+      }
 
       let json_out = await response->Response.json
-      let json_outd = switch Js.Json.decodeArray(json_out) {
-      | Some(arrayData) =>
-          arrayData
-          -> Belt.Array.map(item =>
-              switch Js.Json.decodeArray(item) {
-              | Some([a, b]) =>
-                  switch (Js.Json.decodeNumber(a), Js.Json.decodeNumber(b)) {
-                  | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
-                  | _ => None
-                  }
-              | _ => None
-              })
-          -> Belt.Array.keepMap(pair => pair)
-      | None =>
-          []
+      let json_outd = switch Js.Json.decodeObject(json_out) {
+      | Some(objectData) =>
+          let isDeadEncoded = Js.Dict.unsafeGet(objectData, "is_dead")
+          let isDead = getBool(isDeadEncoded)
+          if (isDead) {
+            setPosition(_ => (0, 0))
+            []
+          } else {
+            switch Js.Json.decodeArray(Js.Dict.unsafeGet(objectData, "obstacles")) {
+              | Some(arr) => arr->Belt.Array.map(item =>
+                switch Js.Json.decodeArray(item) {
+                | Some([a, b]) =>
+                    switch (Js.Json.decodeNumber(a), Js.Json.decodeNumber(b)) {
+                    | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
+                    | _ => None
+                    }
+                | _ => None
+                })
+            -> Belt.Array.keepMap(pair => pair)
+              | None => []
+            }
+          }
+      | None => []
       }
       Js.log(json_outd)
       setObstacles(_ => json_outd)
@@ -118,7 +100,7 @@ let make = () => {
       Js.log("Move up")
       setPosition(((x, y)) => (Js.Math.max_int(x - 1, 0), y))
       ReactEvent.Keyboard.preventDefault(evt)
-    decodeObject
+    | "ArrowDown" =>
       Js.log("Move Down")
       setPosition(((x, y)) => (Js.Math.min_int(x + 1, maxX), y))
       ReactEvent.Keyboard.preventDefault(evt)
