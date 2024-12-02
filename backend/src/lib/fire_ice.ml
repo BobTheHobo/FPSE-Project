@@ -2,6 +2,23 @@ open Core
 
 module Base_grid = Grid.Make(Base_cell)
 
+module Make (Fire_cell: Grid.Cell) (Ice_cell: Grid.Cell) = struct
+  module Fire_grid = Grid.Make(Fire_cell)
+  module Ice_grid = Grid.Make(Ice_cell)
+  type t = {
+    fire_grid : Fire_grid.t;
+    ice_grid : Ice_grid.t
+  }
+
+  let next ({ fire_grid; ice_grid } : t) : t =
+    let fire_next = Fire_grid.next fire_grid in
+    let ice_next = Ice_grid.next ice_grid in
+    let neutralized = Set.inter fire_next.cells ice_next.cells in
+    let new_fire_grid = Set.diff fire_next.cells neutralized  in
+    let new_ice_grid = Set.diff ice_next.cells neutralized in
+    { fire_grid = new_fire_grid; ice_grid = new_ice_grid }
+end
+
 type t = {
   fire_grid : Base_grid.t;
   ice_grid : Base_grid.t;
