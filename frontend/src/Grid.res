@@ -50,7 +50,6 @@ let make = () => {
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
   
   let fetchObstacles = () => {
-<<<<<<< HEAD
     if (isValidMove) {
       Js.log("HEREEEEE");
       let fetchCall = async () => {
@@ -87,57 +86,6 @@ let make = () => {
 
       fetchCall()
       |> ignore
-=======
-    let fetchCall = async () => {
-      Js.log(obstacles)
-      let response = await fetch(
-        "http://localhost:8080/get_obstacles",
-        {
-          method: #POST,
-          body: {
-            "obstacles": obstacles,
-            "player": position,
-          }->Js.Json.stringifyAny->Belt.Option.getExn->Body.string,
-          headers: Headers.fromObject({
-            "Content-type": "application/json",
-          }),
-        },
-      )
-      
-      let getBool = encoded => switch Js.Json.decodeBoolean(encoded) {
-        | Some(value) => value
-        | None => true
-      }
-
-      let json_out = await response->Response.json
-      Js.log(json_out)
-      let json_outd = switch Js.Json.decodeObject(json_out) {
-      | Some(objectData) =>
-          let isDeadEncoded = Js.Dict.unsafeGet(objectData, "is_dead")
-          let isDead = getBool(isDeadEncoded)
-          if (isDead) {
-            setPosition(_ => (0, 0))
-            []
-          } else {
-            switch Js.Json.decodeArray(Js.Dict.unsafeGet(objectData, "obstacles")) {
-              | Some(arr) => arr->Belt.Array.map(item =>
-                switch Js.Json.decodeArray(item) {
-                | Some([a, b]) =>
-                    switch (Js.Json.decodeNumber(a), Js.Json.decodeNumber(b)) {
-                    | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
-                    | _ => None
-                    }
-                | _ => None
-                })
-            -> Belt.Array.keepMap(pair => pair)
-              | None => []
-            }
-          }
-      | None => []
-      }
-      Js.log(json_outd)
-      setObstacles(_ => json_outd)
->>>>>>> 70b31cf (fix init_obstacles to return false as dead state)
     }
   }
 
