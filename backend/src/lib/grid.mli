@@ -1,26 +1,35 @@
-open Core
-
 module type Cell = sig
-  type t = { x : int; y : int } [@@deriving sexp, compare, equal]
+  type t [@@deriving sexp, compare, equal]
+  val x : t -> int
+  val y : t -> int
   val to_string : t -> string
-  
+
   val b : int
-  
   val s1 : int
   val s2 : int
 end
 
-module Make : functor (Key : Cell) -> sig
-  module Coordinate_set : Set.S with type Elt.t := Key.t
+module type State = sig
+  type elt
+  type t
   
-  type t = { cells : Coordinate_set.t; width : int; height : int }
+  val to_string : t -> string
+  val empty : t
+  val add : t -> elt -> t
+  val fold : t -> init : 'acc -> f:('acc -> elt -> 'acc) -> 'acc
+  val survive_set : t -> t
+  val spawn_set : t -> t
+end
+
+module Make : functor (Cell : Cell) -> sig
+  module State : State with type elt = Cell.t
+  
+  type t = { cells : State.t; width : int; height : int }
   
   val empty : t
   
-  val coordinate_set_to_string : Coordinate_set.t -> string
-  
-  val neighbors : Key.t -> width : int -> height : int -> Coordinate_set.t
+  val neighbors : State.elt -> width : int -> height : int -> State.t
   
   val next : t -> t
-  val create : Key.t list -> width : int -> height : int -> t
+  val create : State.elt list -> width : int -> height : int -> t
 end
