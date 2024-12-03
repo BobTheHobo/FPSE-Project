@@ -15,7 +15,7 @@ end
 
 module Base_game = Grid.Make (Key)
 
-type obstacle_object = { fire : (int * int) list; ice : (int * int) list }
+type obstacle_object = { fire : (int * int) list; ice : (int * int) list; player : (int * int) }
 [@@deriving yojson]
 
 let coordinate_to_pair_list (ls : Key.t list) : (int * int) list =
@@ -63,20 +63,29 @@ let get_next_state (prev_state : (int * int) list) (is_fire : bool) : Base_game.
              Base_game.next { Base_game.cells = set; width = 10; height = 10 }
            in
            updated.cells)
+  
+let diff (lhs : Base_game.Coordinate_set.t) (rhs : Base_game.Coordinate_set.t) : Base_game.Coordinate_set.t = Set.diff lhs rhs
 
-let get_final_state (set_a : Base_game.Coordinate_set.t) (set_b : Base_game.Coordinate_set.t) : string =
-  Set.diff set_a set_b
+let encode_pair ((x, y) : int * int) = Printf.sprintf "[%d, %d]" x y
+
+let encode_set (coord_set : Base_game.Coordinate_set.t) : string =
+  coord_set
   |> Set.to_list
   |> coordinate_to_pair_list
-  |> List.map ~f:(fun (x, y) -> Printf.sprintf "[%d, %d]" x y)
+  |> List.map ~f:(encode_pair)
   |> fun a -> String.concat a ~sep:", "
+  
+let player_pos (is_dead : bool) (passed_pos : (int * int)) = if is_dead then (0, 0) else passed_pos
 
-let get_next_board (fire_state : (int * int) list) (ice_state : (int * int) list) : string =
+let get_next_board (fire_state : (int * int) list) (ice_state : (int * int) list) ((player_x, player_y): (int * int)): string =
   let next_fire_state = get_next_state fire_state true in
   let next_ice_state = get_next_state ice_state false in
-  let final_fire_state = get_final_state next_fire_state next_ice_state in
-  let final_ice_state = get_final_state next_ice_state next_fire_state in
-  Printf.sprintf "{\"fire\": [%s], \"ice\": [%s]}" final_fire_state final_ice_state
+  let final_fire_state = diff next_fire_state next_ice_state in
+  let final_ice_state = diff next_ice_state next_fire_state in
+  let is_dead = Set.mem (Set.union final_fire_state final_ice_state) { x = player_x; y = player_y }  in
+  let fire_encoded = encode_set next_fire_state in
+  let ice_encoded = encode_set next_ice_state in
+  Printf.sprintf "{ \"fire\": [%s], \"ice\": [%s], \"player\": %s }" fire_encoded ice_encoded (encode_pair (player_pos is_dead (player_x, player_y)))
 
 let () =
   run 
@@ -89,7 +98,7 @@ let () =
         let obstacle_object =
           body |> Yojson.Safe.from_string |> obstacle_object_of_yojson
         in
-        get_next_board obstacle_object.fire obstacle_object.ice
+        get_next_board obstacle_object.fire obstacle_object.ice obstacle_object.player
         |> respond ~headers:
           [
             ("Access-Control-Allow-Origin", "*");

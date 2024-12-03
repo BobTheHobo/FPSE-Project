@@ -18,19 +18,20 @@ let getColorClass = (state: int) => {
   }
 }
 
+let decodePosition = array => switch decodeArray(array) {
+  | Some([a, b]) =>
+    switch (decodeNumber(a), decodeNumber(b)) {
+      | (Some(a), Some(b)) => (int_of_float(a), int_of_float(b))
+      | _ => (0, 0)
+    }
+  | _ => (0, 0)
+}
+
 let decode_obstacles = obstacle_array => switch decodeArray(obstacle_array) {
 | Some(arrayData) =>
     arrayData
-    -> map(item =>
-        switch decodeArray(item) {
-        | Some([a, b]) =>
-            switch (decodeNumber(a), decodeNumber(b)) {
-            | (Some(a), Some(b)) => Some((int_of_float(a), int_of_float(b)))
-            | _ => None
-            }
-        | _ => None
-        })
-    -> keepMap(pair => pair)
+    -> map(decodePosition)
+    -> keepMap(pair => Some(pair))
 | None =>
     []
 }
@@ -47,15 +48,16 @@ let make = () => {
   let maxY = gridSize - 1
 
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
-
+  
   let fetchObstacles = () => {
     if (isValidMove) {
+      Js.log("HEREEEEE");
       let fetchCall = async () => {
         let response = await fetch(
           "http://localhost:8080/get_obstacles",
           {
             method: #POST,
-            body: {"fire": fire, "ice": ice}->stringifyAny->Belt.Option.getExn->Body.string,
+            body: { "fire": fire, "ice": ice, "player": position }->stringifyAny->Belt.Option.getExn->Body.string,
             headers: Headers.fromObject({
               "Content-type": "application/json",
             }),
@@ -63,15 +65,23 @@ let make = () => {
         )
 
         let json_out = await response->Response.json
+        Js.log(json_out)
         let dict_out = switch decodeObject(json_out) {
         | Some(dict_data) => dict_data
         | None => let dict_data = Js.Dict.empty()
           Js.Dict.set(dict_data, "fire", Js.Json.Array([]))
           Js.Dict.set(dict_data, "ice", Js.Json.Array([]))
+          Js.Dict.set(dict_data, "player", Js.Json.Array([
+            Js.Json.number(0.0),
+            Js.Json.number(0.0),
+          ]))
           dict_data
         }
         setFire(_ => dict_out->Js.Dict.unsafeGet("fire")->decode_obstacles)
         setIce(_ => dict_out->Js.Dict.unsafeGet("ice")->decode_obstacles)
+        if (dict_out->Js.Dict.unsafeGet("player")->decodePosition == (0, 0)) {
+          setPosition(_ => (0, 0))
+        }
       }
 
       fetchCall()

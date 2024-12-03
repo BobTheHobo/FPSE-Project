@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import * as Js_json from "rescript/lib/es6/js_json.js";
+import * as Caml_obj from "rescript/lib/es6/caml_obj.js";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
@@ -12,13 +13,57 @@ function getColorClass(state) {
     case 0 :
         return "traversable";
     case 1 :
-        return "player";
-    case 2 :
-        return "obstacle";
-    case 3 :
         return "goal";
+    case 2 :
+        return "player";
+    case 3 :
+        return "fire";
+    case 4 :
+        return "ice";
     default:
       return "default";
+  }
+}
+
+function decodePosition(array) {
+  var match = Js_json.decodeArray(array);
+  if (match === undefined) {
+    return [
+            0,
+            0
+          ];
+  }
+  if (match.length !== 2) {
+    return [
+            0,
+            0
+          ];
+  }
+  var a = match[0];
+  var b = match[1];
+  var match$1 = Js_json.decodeNumber(a);
+  var match$2 = Js_json.decodeNumber(b);
+  if (match$1 !== undefined && match$2 !== undefined) {
+    return [
+            match$1 | 0,
+            match$2 | 0
+          ];
+  } else {
+    return [
+            0,
+            0
+          ];
+  }
+}
+
+function decode_obstacles(obstacle_array) {
+  var arrayData = Js_json.decodeArray(obstacle_array);
+  if (arrayData !== undefined) {
+    return Belt_Array.keepMap(Belt_Array.map(arrayData, decodePosition), (function (pair) {
+                  return pair;
+                }));
+  } else {
+    return [];
   }
 }
 
@@ -34,13 +79,18 @@ function Grid(props) {
   var match$1 = React.useState(function () {
         return [];
       });
-  var setObstacles = match$1[1];
-  var obstacles = match$1[0];
+  var setFire = match$1[1];
+  var fire = match$1[0];
   var match$2 = React.useState(function () {
+        return [];
+      });
+  var setIce = match$2[1];
+  var ice = match$2[0];
+  var match$3 = React.useState(function () {
         return true;
       });
-  var setIsValidMove = match$2[1];
-  var isValidMove = match$2[0];
+  var setIsValidMove = match$3[1];
+  var isValidMove = match$3[0];
   var maxX = 9;
   var maxY = 9;
   var grid = Belt_Array.map(Belt_Array.make(10, undefined), (function () {
@@ -50,43 +100,53 @@ function Grid(props) {
     if (!isValidMove) {
       return ;
     }
+    console.log("HEREEEEE");
     var fetchCall = async function () {
       var response = await fetch("http://localhost:8080/get_obstacles", {
             method: "POST",
             body: Caml_option.some(Belt_Option.getExn(JSON.stringify({
-                          obstacles: obstacles
+                          fire: fire,
+                          ice: ice,
+                          player: position
                         }))),
             headers: Caml_option.some(new Headers({
                       "Content-type": "application/json"
                     }))
           });
       var json_out = await response.json();
-      var arrayData = Js_json.decodeArray(json_out);
-      var json_outd = arrayData !== undefined ? Belt_Array.keepMap(Belt_Array.map(arrayData, (function (item) {
-                    var match = Js_json.decodeArray(item);
-                    if (match === undefined) {
-                      return ;
-                    }
-                    if (match.length !== 2) {
-                      return ;
-                    }
-                    var a = match[0];
-                    var b = match[1];
-                    var match$1 = Js_json.decodeNumber(a);
-                    var match$2 = Js_json.decodeNumber(b);
-                    if (match$1 !== undefined && match$2 !== undefined) {
-                      return [
-                              match$1 | 0,
-                              match$2 | 0
-                            ];
-                    }
-                    
-                  })), (function (pair) {
-                return pair;
-              })) : [];
-      return setObstacles(function (param) {
-                  return json_outd;
-                });
+      console.log(json_out);
+      var dict_data = Js_json.decodeObject(json_out);
+      var dict_out;
+      if (dict_data !== undefined) {
+        dict_out = dict_data;
+      } else {
+        var dict_data$1 = {};
+        dict_data$1["fire"] = [];
+        dict_data$1["ice"] = [];
+        dict_data$1["player"] = [
+          0.0,
+          0.0
+        ];
+        dict_out = dict_data$1;
+      }
+      setFire(function (param) {
+            return decode_obstacles(dict_out["fire"]);
+          });
+      setIce(function (param) {
+            return decode_obstacles(dict_out["ice"]);
+          });
+      if (Caml_obj.equal(decodePosition(dict_out["player"]), [
+              0,
+              0
+            ])) {
+        return setPosition(function (param) {
+                    return [
+                            0,
+                            0
+                          ];
+                  });
+      }
+      
     };
     fetchCall();
   };
@@ -203,10 +263,13 @@ function Grid(props) {
                     document.removeEventListener("keyup", onKeyDown);
                   });
         }), []);
-  Belt_Array.setExn(Belt_Array.getExn(grid, position[0]), position[1], 1);
-  Belt_Array.setExn(Belt_Array.getExn(grid, maxX), maxY, 3);
-  Belt_Array.forEach(obstacles, (function (pos) {
-          Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 2);
+  Belt_Array.setExn(Belt_Array.getExn(grid, maxX), maxY, 1);
+  Belt_Array.setExn(Belt_Array.getExn(grid, position[0]), position[1], 2);
+  Belt_Array.forEach(fire, (function (pos) {
+          Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 3);
+        }));
+  Belt_Array.forEach(ice, (function (pos) {
+          Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 4);
         }));
   return JsxRuntime.jsx("div", {
               children: grid.map(function (row, y) {
