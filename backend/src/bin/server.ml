@@ -24,7 +24,6 @@ let coordinate_to_pair_list (ls : Key.t list) : (int * int) list =
 let pair_to_coordinate_list (pairs : (int * int) list) : Key.t list=
   List.map pairs ~f:(fun (x, y) -> { Key.x; y })
 
-<<<<<<< HEAD
 let init_obstacles ~(width : int) ~(height : int) (is_fire : bool) : Base_game.Coordinate_set.t =
   let start : Key.t =
     let half_w = width/2 in
@@ -87,18 +86,6 @@ let get_next_board (fire_state : (int * int) list) (ice_state : (int * int) list
   let fire_encoded = encode_set next_fire_state in
   let ice_encoded = encode_set next_ice_state in
   Printf.sprintf "{ \"fire\": [%s], \"ice\": [%s], \"player\": %s }" fire_encoded ice_encoded (encode_pair (player_pos is_dead (player_x, player_y)))
-=======
-let get_next_obstacles (obstacles : Key.t list) (player : Key.t) : (Key.t list * bool) =
-  match obstacles with
-  | [] -> init_obstacles ~width:10 ~height:10
-          |> fun ls -> (ls, false)
-  | hd ->
-      let set = Base_game.Coordinate_set.of_list hd in
-      let { Base_game.cells; _ } =
-        Base_game.next { Base_game.cells = set; width = 10; height = 10 }
-      in let is_dead = (Set.mem cells player) in
-      (Set.to_list cells, is_dead)
->>>>>>> 70b31cf (fix init_obstacles to return false as dead state)
 
 let () =
   run 
