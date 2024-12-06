@@ -79,9 +79,6 @@ let make = () => {
         }
         setFire(_ => dict_out->Js.Dict.unsafeGet("fire")->decode_obstacles)
         setIce(_ => dict_out->Js.Dict.unsafeGet("ice")->decode_obstacles)
-        if (dict_out->Js.Dict.unsafeGet("player")->decodePosition == (0, 0)) {
-          setPosition(_ => (0, 0))
-        }
       }
 
       fetchCall()

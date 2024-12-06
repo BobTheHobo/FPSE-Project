@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import * as Js_json from "rescript/lib/es6/js_json.js";
-import * as Caml_obj from "rescript/lib/es6/caml_obj.js";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
@@ -115,51 +114,10 @@ function Grid(props) {
           });
       var json_out = await response.json();
       console.log(json_out);
-<<<<<<< HEAD
       var dict_data = Js_json.decodeObject(json_out);
       var dict_out;
       if (dict_data !== undefined) {
         dict_out = dict_data;
-=======
-      var objectData = Js_json.decodeObject(json_out);
-      var json_outd;
-      if (objectData !== undefined) {
-        var isDeadEncoded = objectData["is_dead"];
-        var isDead = getBool(isDeadEncoded);
-        if (isDead) {
-          setPosition(function (param) {
-                return [
-                        0,
-                        0
-                      ];
-              });
-          json_outd = [];
-        } else {
-          var arr = Js_json.decodeArray(objectData["obstacles"]);
-          json_outd = arr !== undefined ? Belt_Array.keepMap(Belt_Array.map(arr, (function (item) {
-                        var match = Js_json.decodeArray(item);
-                        if (match === undefined) {
-                          return ;
-                        }
-                        if (match.length !== 2) {
-                          return ;
-                        }
-                        var a = match[0];
-                        var b = match[1];
-                        var match$1 = Js_json.decodeNumber(a);
-                        var match$2 = Js_json.decodeNumber(b);
-                        if (match$1 !== undefined && match$2 !== undefined) {
-                          return [
-                                  match$1 | 0,
-                                  match$2 | 0
-                                ];
-                        }
-                        
-                      })), (function (pair) {
-                    return pair;
-                  })) : [];
-        }
->>>>>>> 70b31cf (fix init_obstacles to return false as dead state)
       } else {
         var dict_data$1 = {};
         dict_data$1["fire"] = [];
@@ -173,21 +131,9 @@ function Grid(props) {
       setFire(function (param) {
             return decode_obstacles(dict_out["fire"]);
           });
-      setIce(function (param) {
-            return decode_obstacles(dict_out["ice"]);
-          });
-      if (Caml_obj.equal(decodePosition(dict_out["player"]), [
-              0,
-              0
-            ])) {
-        return setPosition(function (param) {
-                    return [
-                            0,
-                            0
-                          ];
-                  });
-      }
-      
+      return setIce(function (param) {
+                  return decode_obstacles(dict_out["ice"]);
+                });
     };
     fetchCall();
   };
