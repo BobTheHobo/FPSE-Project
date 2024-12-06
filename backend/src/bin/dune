@@ -1,10 +1,12 @@
-(executable
- (name cli)
- (modules cli)
- (libraries core core_unix core_unix.sys_unix stdio game))
+; (executable
+;  (name cli)
+;  (modules cli)
+;  (libraries core core_unix core_unix.sys_unix stdio game))
 
 (executable
  (name server)
- (libraries game core core_unix core_unix.sys_unix stdio dream)
+ (modules server)
+ (libraries lib dream yojson ppx_yojson_conv core sexplib)
  (preprocess
-  (pps ppx_jane lwt_ppx ppx_yojson_conv)))
+  (pps ppx_jane ppx_yojson_conv)))
+
