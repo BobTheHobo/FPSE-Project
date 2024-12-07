@@ -16,7 +16,9 @@ module Coordinate = struct
   include T
   module CSet = Set.Make (T)
 
+  [@@@coverage off]
   let to_string (t : t) = Sexp.to_string (sexp_of_t t)
+  [@@@coverage on]
 
   type grid = { coordinates : CSet.t; width : int; height : int }
 
