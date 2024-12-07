@@ -36,13 +36,40 @@ let decode_obstacles = obstacle_array => switch decodeArray(obstacle_array) {
     []
 }
 
+type position = {
+  x : int,
+  y : int
+}
+
+let encode_request_body = (game_id: int, player_position: position) => 
+{
+  "game_id": game_id,
+  "player_position": player_position
+}->stringifyAny->Belt.Option.getExn->Body.string
+
+let decode_response_body = (payload) => switch decodeObject(payload) {
+  | Some(response_body) => response_body
+  | None => Js.Dict.empty()
+}
+
+let number_to_int = (number) => switch decodeNumber(number) {
+  | Some(a) => int_of_float(a)
+  | _ => -1
+}
+
+let position_to_tuple = (position) => (position.x, position.y)
 
 @react.component
 let make = () => {
   let (position, setPosition) = useState(() => (0, 0))
+  let (playerPos, setPlayerPos) = useState(() => {
+    x: 0,
+    y: 0
+  });
   let (fire, setFire) = useState(() => [])
   let (ice, setIce) = useState(() => [])
   let (isValidMove, setIsValidMove) = useState(() => true)
+  let (gameId, setGameId) = useState(() => (-1))
   let gridSize = 10
   let maxX = gridSize - 1
   let maxY = gridSize - 1
@@ -52,6 +79,20 @@ let make = () => {
   let fetchObstacles = () => {
     if (isValidMove) {
       Js.log("HEREEEEE");
+      let gameCall = async () => {
+        let response = await fetch("http://localhost:8080/game", {
+          method: #POST,
+          body: encode_request_body(gameId, playerPos),
+          headers: Headers.fromObject({
+            "Content-Type": "application/json"
+          })
+        });
+        let payload = await Response.json(response);
+        let decoded = decode_response_body(payload);
+        let gameIdNum = Js.Dict.unsafeGet(decoded, "game_id");
+        let asInt = number_to_int(gameIdNum);
+        setGameId(_ => asInt)
+      }
       let fetchCall = async () => {
         let response = await fetch(
           "http://localhost:8080/get_obstacles",
@@ -81,7 +122,7 @@ let make = () => {
         setIce(_ => dict_out->Js.Dict.unsafeGet("ice")->decode_obstacles)
       }
 
-      fetchCall()
+      gameCall()
       |> ignore
     }
   }

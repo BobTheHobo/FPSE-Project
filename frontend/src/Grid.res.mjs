@@ -24,45 +24,28 @@ function getColorClass(state) {
   }
 }
 
-function decodePosition(array) {
-  var match = Js_json.decodeArray(array);
-  if (match === undefined) {
-    return [
-            0,
-            0
-          ];
-  }
-  if (match.length !== 2) {
-    return [
-            0,
-            0
-          ];
-  }
-  var a = match[0];
-  var b = match[1];
-  var match$1 = Js_json.decodeNumber(a);
-  var match$2 = Js_json.decodeNumber(b);
-  if (match$1 !== undefined && match$2 !== undefined) {
-    return [
-            match$1 | 0,
-            match$2 | 0
-          ];
+function encode_request_body(game_id, player_position) {
+  return Belt_Option.getExn(JSON.stringify({
+                  game_id: game_id,
+                  player_position: player_position
+                }));
+}
+
+function decode_response_body(payload) {
+  var response_body = Js_json.decodeObject(payload);
+  if (response_body !== undefined) {
+    return response_body;
   } else {
-    return [
-            0,
-            0
-          ];
+    return {};
   }
 }
 
-function decode_obstacles(obstacle_array) {
-  var arrayData = Js_json.decodeArray(obstacle_array);
-  if (arrayData !== undefined) {
-    return Belt_Array.keepMap(Belt_Array.map(arrayData, decodePosition), (function (pair) {
-                  return pair;
-                }));
+function number_to_int(number) {
+  var a = Js_json.decodeNumber(number);
+  if (a !== undefined) {
+    return a | 0;
   } else {
-    return [];
+    return -1;
   }
 }
 
@@ -76,20 +59,28 @@ function Grid(props) {
   var setPosition = match[1];
   var position = match[0];
   var match$1 = React.useState(function () {
-        return [];
+        return {
+                x: 0,
+                y: 0
+              };
       });
-  var setFire = match$1[1];
-  var fire = match$1[0];
+  var playerPos = match$1[0];
   var match$2 = React.useState(function () {
         return [];
       });
-  var setIce = match$2[1];
-  var ice = match$2[0];
   var match$3 = React.useState(function () {
+        return [];
+      });
+  var match$4 = React.useState(function () {
         return true;
       });
-  var setIsValidMove = match$3[1];
-  var isValidMove = match$3[0];
+  var setIsValidMove = match$4[1];
+  var isValidMove = match$4[0];
+  var match$5 = React.useState(function () {
+        return -1;
+      });
+  var setGameId = match$5[1];
+  var gameId = match$5[0];
   var maxX = 9;
   var maxY = 9;
   var grid = Belt_Array.map(Belt_Array.make(10, undefined), (function () {
@@ -100,42 +91,25 @@ function Grid(props) {
       return ;
     }
     console.log("HEREEEEE");
-    var fetchCall = async function () {
-      var response = await fetch("http://localhost:8080/get_obstacles", {
+    var gameCall = async function () {
+      var response = await fetch("http://localhost:8080/game", {
             method: "POST",
-            body: Caml_option.some(Belt_Option.getExn(JSON.stringify({
-                          fire: fire,
-                          ice: ice,
-                          player: position
-                        }))),
+            body: Caml_option.some(encode_request_body(gameId, playerPos)),
             headers: Caml_option.some(new Headers({
-                      "Content-type": "application/json"
+                      "Content-Type": "application/json"
                     }))
           });
-      var json_out = await response.json();
-      console.log(json_out);
-      var dict_data = Js_json.decodeObject(json_out);
-      var dict_out;
-      if (dict_data !== undefined) {
-        dict_out = dict_data;
-      } else {
-        var dict_data$1 = {};
-        dict_data$1["fire"] = [];
-        dict_data$1["ice"] = [];
-        dict_data$1["player"] = [
-          0.0,
-          0.0
-        ];
-        dict_out = dict_data$1;
-      }
-      setFire(function (param) {
-            return decode_obstacles(dict_out["fire"]);
-          });
-      return setIce(function (param) {
-                  return decode_obstacles(dict_out["ice"]);
+      var payload = await response.json();
+      var decoded = decode_response_body(payload);
+      var gameIdNum = decoded["game_id"];
+      var asInt = number_to_int(gameIdNum);
+      console.log("GOT");
+      console.log(asInt);
+      return setGameId(function (param) {
+                  return asInt;
                 });
     };
-    fetchCall();
+    gameCall();
   };
   var onKeyDown = function (evt) {
     var key = evt.key;
@@ -252,10 +226,10 @@ function Grid(props) {
         }), []);
   Belt_Array.setExn(Belt_Array.getExn(grid, maxX), maxY, 1);
   Belt_Array.setExn(Belt_Array.getExn(grid, position[0]), position[1], 2);
-  Belt_Array.forEach(fire, (function (pos) {
+  Belt_Array.forEach(match$2[0], (function (pos) {
           Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 3);
         }));
-  Belt_Array.forEach(ice, (function (pos) {
+  Belt_Array.forEach(match$3[0], (function (pos) {
           Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 4);
         }));
   return JsxRuntime.jsx("div", {
