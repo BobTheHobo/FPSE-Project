@@ -1,9 +1,4 @@
 (executable
- (name cli)
- (modules cli)
- (libraries core core_unix core_unix.sys_unix stdio game))
-
-(executable
  (name server)
  (libraries game core core_unix core_unix.sys_unix stdio dream)
  (preprocess

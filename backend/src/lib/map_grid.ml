@@ -45,8 +45,8 @@ module Coordinate = struct
       surrounding { x; y }
       |> Set.filter ~f:(fun coord -> in_bounds coord ~width ~height)
 
-  (** [alive_neighbors cell curr] is the set of coordinates that are currently within +-1 in the x and or y direction
-      of [cell] and is in [curr.cells] *)
+  (** [alive_neighbors cell grid] is the set of coordinates that are currently within +-1 in the x and or y direction
+      of [cell] and is in [grid] *)
   let alive_neighbors (coordinate : t) ({ coordinates; width; height } : grid) : CSet.t =
     neighbors coordinate ~width ~height |> Set.inter coordinates
 
@@ -75,10 +75,16 @@ module type CELL_TYPE = sig
   include T
 
   module TSet : Set.S with type Elt.t := t
+
+  (** [type_list] is the unique list of each variant type so as to make OCaml's compiler stop screaming at you for trying to make a cell type of t (lol) *)
   val type_list : t list
   val to_string : t -> string
   val compare : t -> t -> int
+
+  (** [params_of_t t] is the { b; s1; s2 } Conway game encoding for a cell type *)
   val params_of_t : t -> Params.t
+
+  (** [handle_collisions tset] is [Some t] if you want to encode an interaction between two overlapping cell types. Otherwise it is [None]*)
   val handle_collisions : TSet.t -> t option
 end
 
@@ -88,6 +94,10 @@ module Make (Cell_type : CELL_TYPE) = struct
   let empty = CMap.empty
   
   
+  (** [lookup_neighbors m cell_type coordinate] is the coordinate set of
+    each neighbor determined by [coordinate] that are of type [cell_type] 
+    in [m]
+  *)
   let lookup_neighbors (m : t) (cell_type : Cell_type.t) (coordinate : Coordinate.t) : Coordinate.CSet.t =
     Map.fold m ~init:(Coordinate.CSet.empty) ~f:(fun ~key ~data acc -> 
       if not (Coordinate.is_neighbor coordinate key) then acc 
@@ -98,7 +108,7 @@ module Make (Cell_type : CELL_TYPE) = struct
       )
     )
     
-  (* Do something like this to handle collisions *)
+  (** [handle_collisions m] is the final state of the grid where each coordinate maps to a Cell_type.TSet [set] where [Set.length set] <= 1 *)
   let handle_collisions (m : t) : t  =
     Map.map m ~f:(fun data -> match Cell_type.handle_collisions data with
       | None -> None
@@ -110,6 +120,9 @@ module Make (Cell_type : CELL_TYPE) = struct
         | Some cell -> Map.set acc ~key ~data:(Set.add Cell_type.TSet.empty cell)
       )
     
+  (** [coordinates_of_type m cell] is the set [set] where
+    [Set.every set ~f:(fun coordinate -> m[coordinate].type = cell)]
+  *)
   let coordinates_of_type (m : t) (cell : Cell_type.t) : Coordinate.CSet.t =
     m 
     |> Map.keys
@@ -118,6 +131,7 @@ module Make (Cell_type : CELL_TYPE) = struct
       |> Set.union acc
     )
     
+  (** [cell_types m] is the Cell_type.TSet [set] of every present cell type in the map *)
   let cell_types (m : t) : Cell_type.TSet.t =
     m
     |> Map.data

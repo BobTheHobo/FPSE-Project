@@ -2,18 +2,6 @@ open Core
 open OUnit2
 open Game
 
-
-module Cell = struct
-  type t = { x : int; y : int } [@@deriving sexp, compare, equal]
-  let to_string key = Sexp.to_string (sexp_of_t key)
-  
-  let b = 3
-  let s1 = 2
-  let s2 = 3
-end
-
-module Grid = Grid.Make(Cell)
-
 module Cell_type : Map_grid.CELL_TYPE = struct
   module T = struct
     type t =
