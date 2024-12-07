@@ -165,14 +165,20 @@ let encode_map_grid (map_grid : Game_grid.t) =
   in 
   `List map_as_list
   
-let encode_game_state (map_grid : Game_grid.t) (player : Map_grid.Coordinate.t) : string =
+let encode_response_body (game_id : int) (map_grid : Game_grid.t) (player : Map_grid.Coordinate.t) : string =
   let json = `Assoc [
+    ("game_id", `Int game_id);
     ("obstacles", encode_map_grid map_grid);
-    ("player", coordinate_to_assoc player)
+    ("player", coordinate_to_assoc player);
   ] in
   Yojson.Safe.to_string json
+  
+type game_state = {
+  obstacles: Game_grid.t;
+  player_position: Map_grid.Coordinate.t;
+}
 
-let init_game =
+let init_grid_map_state =
   let random_fire_cell_positions = [
     { Map_grid.Coordinate.x = 5; y = 4 };
     { Map_grid.Coordinate.x = 4; y = 5 };
@@ -186,6 +192,33 @@ let init_game =
   let mapped_to_fire = List.map random_fire_cell_positions ~f:(fun c -> (c, fire_set)) in
   let mapped_to_ice = List.map random_ice_cell_positions ~f:(fun c -> (c, ice_set)) in
   Game_grid.CMap.of_alist_exn (mapped_to_fire @ mapped_to_ice)
+
+
+let game_states : (int, game_state) Hashtbl.t = Hashtbl.create (module Int)
+let current_game_id = ref 0
+let next_game_id () =
+  let id = !current_game_id in
+  current_game_id := (id + 1) mod 11;
+  id
+
+let create_initial_game_state () : game_state = {
+  obstacles = init_grid_map_state;
+  player_position = { x = 0; y = 0 };
+}
+(* let get_game_state game_id = Hashtbl.find game_states game_id *)
+let set_game_state game_id new_state = Hashtbl.set game_states ~key:game_id ~data:new_state
+
+let create_new_game_state () =
+  let game_id = next_game_id () in
+  let new_state = create_initial_game_state () in
+  set_game_state game_id new_state;
+  (game_id, new_state)
+
+type position = { x : int; y : int } [@@deriving yojson]
+type game_post_request_body = {
+  game_id : int;
+  player_position : position;
+} [@@deriving yojson]
 
 let () =
   run 
@@ -213,9 +246,13 @@ let () =
             ("Access-Control-Allow-Headers", "*");
           ]
         "");
-      post "/game" (fun _ ->
-        init_game
-        |> fun state -> encode_game_state state { x = 0; y = 0 }
+      post "/game" (fun request ->
+        let%lwt body = body request in
+        let { game_id; player_position = _ } = body |> Yojson.Safe.from_string |> game_post_request_body_of_yojson in
+        let (game_id, game_state) =
+          if game_id = (-1) then create_new_game_state ()
+          else create_new_game_state ()
+        in encode_response_body game_id game_state.obstacles game_state.player_position
         |> respond ~headers:
           [
             ("Access-Control-Allow-Origin", "*");
