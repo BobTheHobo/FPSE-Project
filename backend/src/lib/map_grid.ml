@@ -10,10 +10,10 @@ module Coordinate = struct
   end
   include T
   
-  let to_string (t : t) = Sexp.to_string (sexp_of_t t)
   
   module CSet = Set.Make (T)
   
+  let to_string (t : t) = Sexp.to_string (sexp_of_t t)
   type grid = { coordinates: CSet.t; width: int; height: int }
   
   (** [surrounding cell] are simply the bottom 3, top 3, and left and right neighbors of cell without regards to the bounds *)
@@ -30,6 +30,8 @@ module Coordinate = struct
     { x = x + 1; y = y - 1 };
     { x = x - 1; y = y - 1 };
   ]
+
+  let is_neighbor (a : t) (b : t) = abs (a.x - b.x) <= 1 && abs (a.y - b.y) <= 1
 
   (** [in_bounds cell ~height ~width] if and only if cell.x >= 0 && cell.x < width, and cell.y >= 0 && cell.y < height *)
   let in_bounds ({ x; y } : t) ~(width : int) ~(height : int) =
@@ -73,9 +75,8 @@ module type CELL_TYPE = sig
   include T
 
   module TSet : Set.S with type Elt.t := t
-  val to_string : t -> string
-  
   val type_list : t list
+  val to_string : t -> string
   val compare : t -> t -> int
   val params_of_t : t -> Params.t
   val handle_collisions : TSet.t -> t option
@@ -83,17 +84,13 @@ end
 
 module Make (Cell_type : CELL_TYPE) = struct
   module CMap = Map.Make (Coordinate)
-
-  (* probably also want to map cell types to their params either with payload or a map *)
   type t = Cell_type.TSet.t CMap.t
-
   let empty = CMap.empty
   
-  let is_neighbor (a : Coordinate.t) (b : Coordinate.t) = abs (a.x - b.x) <= 1 && abs (a.y - b.y) <= 1
   
   let lookup_neighbors (m : t) (cell_type : Cell_type.t) (coordinate : Coordinate.t) : Coordinate.CSet.t =
     Map.fold m ~init:(Coordinate.CSet.empty) ~f:(fun ~key ~data acc -> 
-      if not (is_neighbor coordinate key) then acc 
+      if not (Coordinate.is_neighbor coordinate key) then acc 
       else (
         data
         |> Set.filter ~f:(fun cell -> Cell_type.compare cell cell_type = 0)
@@ -149,29 +146,3 @@ module Make (Cell_type : CELL_TYPE) = struct
     )
     |> handle_collisions
 end
-
-(* Now, in your main use of the grid *)
-
-module Cells_tmp = struct
-  type t =
-    | Fire
-    | Ice
-    | Water
-    [@@deriving sexp, compare]
-end
-
-(* then after user input *)
-
-(* module Cell_type : CELL_TYPE = struct
-  module T = Cells_tmp
-  include T
-  module TSet = Set.Make (T)
-
-  let params_of_t = (* use user input *)
-  let handle_collisions = (* use user input *)
-end
-
-let () =
-  let module Grid = Map_grid (Cell_type) in
-  (* then use the module in the code that follows *)
-  () *)

@@ -180,14 +180,14 @@ type game_state = {
 
 let init_grid_map_state =
   let random_fire_cell_positions = [
-    { Map_grid.Coordinate.x = 5; y = 4 };
-    { Map_grid.Coordinate.x = 4; y = 5 };
-    { Map_grid.Coordinate.x = 6; y = 5 };
+    { Map_grid.Coordinate.T.x = 5; y = 4 };
+    { x = 4; y = 5 };
+    { x = 6; y = 5 };
   ] in
   let random_ice_cell_positions = [
-    { Map_grid.Coordinate.x = 10; y = 9 };
-    { Map_grid.Coordinate.x = 9; y = 10 };
-    { Map_grid.Coordinate.x = 11; y = 10 };
+    { Map_grid.Coordinate.T.x = 10; y = 9 };
+    { x = 9; y = 10 };
+    { x = 11; y = 10 };
   ] in
   let mapped_to_fire = List.map random_fire_cell_positions ~f:(fun c -> (c, fire_set)) in
   let mapped_to_ice = List.map random_ice_cell_positions ~f:(fun c -> (c, ice_set)) in
@@ -221,7 +221,7 @@ type game_post_request_body = {
 } [@@deriving yojson]
 
 let position_to_coordinate (pos : position) : Map_grid.Coordinate.t = {
-  Map_grid.Coordinate.x = pos.x;
+  Map_grid.Coordinate.T.x = pos.x;
   y = pos.y;
 }
 
