@@ -51,10 +51,28 @@ end
 module M_grid = Map_grid.Make(Cell_type)
 
 let create_coordinate ~x ~y = { Map_grid.Coordinate.x; y }
-let get_fire_set =
+let get_fire = 
   match Cell_type.type_list with
-  | fire_cell :: _ -> Cell_type.TSet.of_list [fire_cell]
+  | fire_cell :: _ -> fire_cell
   | _ -> failwith "lol"
+
+let get_ice = 
+  match Cell_type.type_list with
+  | _ :: ice_cell :: _ -> ice_cell
+  | _ -> failwith "lol"
+
+let get_water = 
+  match Cell_type.type_list with
+  | _ :: _ :: water_cell :: _ -> water_cell
+  | _ -> failwith "lol"
+
+let get_fire_set = Cell_type.TSet.of_list [get_fire]
+  
+let get_ice_set = Cell_type.TSet.of_list [get_ice]
+
+let is_same_type (a : Cell_type.t) (b : Cell_type.t) = Cell_type.compare a b = 0
+  
+(* let get_water_set = Cell_type.TSet.of_list [get_water] *)
 
 let test_all_dead_from_solitude_example _ =
   let coordinate_1 = { Map_grid.Coordinate.x = 0; y = 0 } in
@@ -101,7 +119,34 @@ let test_spawn_example _ =
     (c3, get_fire_set)
   ] in
   let mnext = M_grid.next m ~width:4 ~height:4 in
-  assert_equal (Map.length mnext) 4
+  assert_equal (Map.length mnext) 4;
+  assert_equal ([
+    c1;
+    create_coordinate ~x:0 ~y:1;
+    c3;
+    c2;
+  ]) (Map.keys mnext)
+  
+let test_fire_ice_collision_example _ =
+  let fire_ice_set = Set.union get_fire_set get_ice_set in
+  let c = create_coordinate ~x:0 ~y:0 in
+  let m = M_grid.CMap.of_alist_exn [
+    (c, fire_ice_set)
+  ] in
+  let handled = M_grid.handle_collisions m in
+  assert_equal (Map.length handled) 1;
+  let ls = 
+    Map.find_exn handled c
+    |> Set.to_list
+  in
+  assert_equal (List.length ls) 1;
+  match ls with
+  | hd :: _ -> (
+    assert_bool "Water should equal water" (is_same_type hd get_water);
+    assert_bool "Fire shouldn't equal water" (not (is_same_type hd get_fire));
+    assert_bool "Ice shouldn't equal water" (not (is_same_type hd get_ice));
+  )
+  | _ -> failwith "lol"
 
 let loop (grid : Grid.t) (iter_limit : int) ~(f : Grid.t -> int -> unit) : unit
     =
@@ -152,6 +197,7 @@ let suite =
         "test all_dead_from_solitude example" >:: test_all_dead_from_solitude_example;
         "test corners_alive_overpopulation example" >:: test_corners_alive_overpopulation_example;
         "test test_spawn_example" >:: test_spawn_example;
+        "test test_fire_ice_collision" >:: test_fire_ice_collision_example;
         "test simple next" >:: test_simple_next;
         "test blinker 10 iterations" >:: test_blinker;
        ]
