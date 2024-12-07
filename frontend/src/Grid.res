@@ -18,24 +18,6 @@ let getColorClass = (state: int) => {
   }
 }
 
-let decodePosition = array => switch decodeArray(array) {
-  | Some([a, b]) =>
-    switch (decodeNumber(a), decodeNumber(b)) {
-      | (Some(a), Some(b)) => (int_of_float(a), int_of_float(b))
-      | _ => (0, 0)
-    }
-  | _ => (0, 0)
-}
-
-let decode_obstacles = obstacle_array => switch decodeArray(obstacle_array) {
-| Some(arrayData) =>
-    arrayData
-    -> map(decodePosition)
-    -> keepMap(pair => Some(pair))
-| None =>
-    []
-}
-
 type position = {
   x : int,
   y : int
@@ -57,20 +39,50 @@ let number_to_int = (number) => switch decodeNumber(number) {
   | _ => -1
 }
 
-let position_to_tuple = (position) => (position.x, position.y)
+let decodeCoordinate = coordinate => switch decodeObject(coordinate) {
+  | Some(obj) => switch (Js.Dict.get(obj, "x"), Js.Dict.get(obj, "y")) {
+    | (Some(Js.Json.Number(x)), Some(Js.Json.Number(y))) => { x: Js.Math.floor(x), y: Js.Math.floor(y) }
+    | _ => { x: -1, y: -1 }
+  }
+  | _ => { x: -1, y : -1 }
+}
+
+let decodeCellTypes = cellTypes => switch decodeArray(cellTypes) {
+  | Some(array) => array->Belt.Array.keepMap(Js.Json.decodeString)
+  | None => []
+}
+
+let decodeObstacle = (obstacle, cellType) => switch decodeObject(obstacle) {
+  | Some(obj) => {
+    let coordinate = Js.Dict.unsafeGet(obj, "coordinate");
+    let { x, y } = decodeCoordinate(coordinate);
+    let cellTypes = Js.Dict.unsafeGet(obj, "cell_types");
+    let foundIndex = decodeCellTypes(cellTypes)->Array.findIndex(cell => cell === cellType)
+    if (foundIndex > -1) {
+      (x, y)
+    } else {
+      (-1, -1)
+    }
+  }
+  | None => (-1, -1)
+}
+
+let obstaclesToTuples = (obstacles, cellType) => switch decodeArray(obstacles) {
+  | Some(array) => array->Belt.Array.map(a => decodeObstacle(a, cellType))->Array.filter(((x, y)) => x !== -1 && y !== -1)
+  | None => []
+}
+
+let tupleToPosition = ((x, y): (int, int)) : position => { x, y }
+
 
 @react.component
 let make = () => {
   let (position, setPosition) = useState(() => (0, 0))
-  let (playerPos, setPlayerPos) = useState(() => {
-    x: 0,
-    y: 0
-  });
   let (fire, setFire) = useState(() => [])
   let (ice, setIce) = useState(() => [])
   let (isValidMove, setIsValidMove) = useState(() => true)
   let (gameId, setGameId) = useState(() => (-1))
-  let gridSize = 10
+  let gridSize = 15
   let maxX = gridSize - 1
   let maxY = gridSize - 1
 
@@ -82,7 +94,7 @@ let make = () => {
       let gameCall = async () => {
         let response = await fetch("http://localhost:8080/game", {
           method: #POST,
-          body: encode_request_body(gameId, playerPos),
+          body: encode_request_body(gameId, tupleToPosition(position)),
           headers: Headers.fromObject({
             "Content-Type": "application/json"
           })
@@ -90,37 +102,51 @@ let make = () => {
         let payload = await Response.json(response);
         let decoded = decode_response_body(payload);
         let gameIdNum = Js.Dict.unsafeGet(decoded, "game_id");
+        let obstaclesRaw = Js.Dict.unsafeGet(decoded, "obstacles");
+        let fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
+        let iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
+        Js.log("Fire tuples");
+        Js.log(fireTuples);
+        Js.log("Ice tuples");
+        Js.log(iceTuples);
         let asInt = number_to_int(gameIdNum);
-        setGameId(_ => asInt)
-      }
-      let fetchCall = async () => {
-        let response = await fetch(
-          "http://localhost:8080/get_obstacles",
-          {
-            method: #POST,
-            body: { "fire": fire, "ice": ice, "player": position }->stringifyAny->Belt.Option.getExn->Body.string,
-            headers: Headers.fromObject({
-              "Content-type": "application/json",
-            }),
-          },
-        )
-
-        let json_out = await response->Response.json
-        Js.log(json_out)
-        let dict_out = switch decodeObject(json_out) {
-        | Some(dict_data) => dict_data
-        | None => let dict_data = Js.Dict.empty()
-          Js.Dict.set(dict_data, "fire", Js.Json.Array([]))
-          Js.Dict.set(dict_data, "ice", Js.Json.Array([]))
-          Js.Dict.set(dict_data, "player", Js.Json.Array([
-            Js.Json.number(0.0),
-            Js.Json.number(0.0),
-          ]))
-          dict_data
+        setGameId(_ => asInt);
+        if (Array.length(fireTuples) > 0) {
+          setFire(_ => fireTuples);
         }
-        setFire(_ => dict_out->Js.Dict.unsafeGet("fire")->decode_obstacles)
-        setIce(_ => dict_out->Js.Dict.unsafeGet("ice")->decode_obstacles)
+        if (Array.length(iceTuples) > 0) {
+          setIce(_ => iceTuples);
+        } 
+        // setIce(_ => iceTuples);
       }
+      // let fetchCall = async () => {
+      //   let response = await fetch(
+      //     "http://localhost:8080/get_obstacles",
+      //     {
+      //       method: #POST,
+      //       body: { "fire": fire, "ice": ice, "player": position }->stringifyAny->Belt.Option.getExn->Body.string,
+      //       headers: Headers.fromObject({
+      //         "Content-type": "application/json",
+      //       }),
+      //     },
+      //   )
+
+      //   let json_out = await response->Response.json
+      //   Js.log(json_out)
+      //   let dict_out = switch decodeObject(json_out) {
+      //   | Some(dict_data) => dict_data
+      //   | None => let dict_data = Js.Dict.empty()
+      //     Js.Dict.set(dict_data, "fire", Js.Json.Array([]))
+      //     Js.Dict.set(dict_data, "ice", Js.Json.Array([]))
+      //     Js.Dict.set(dict_data, "player", Js.Json.Array([
+      //       Js.Json.number(0.0),
+      //       Js.Json.number(0.0),
+      //     ]))
+      //     dict_data
+      //   }
+      //   setFire(_ => dict_out->Js.Dict.unsafeGet("fire")->decode_obstacles)
+      //   setIce(_ => dict_out->Js.Dict.unsafeGet("ice")->decode_obstacles)
+      // }
 
       gameCall()
       |> ignore
@@ -196,7 +222,8 @@ let make = () => {
     })
   }, [])
 
- 
+  
+  Js.log(gameId)
   let (x, y) = position
   grid->getExn(maxX)->setExn(maxY, 1)
   grid->getExn(x)->setExn(y, 2)

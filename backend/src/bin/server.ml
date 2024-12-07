@@ -158,7 +158,7 @@ let encode_map_grid (map_grid : Game_grid.t) =
       let cell_type_list = Set.to_list data |> List.map ~f:(Cell_type.to_string) in
       let entry = `Assoc [
         ("coordinate", coordinate_to_assoc key);
-        ("cellTypes", `List (List.map cell_type_list ~f:(fun ct -> `String ct)))
+        ("cell_types", `List (List.map cell_type_list ~f:(fun ct -> `String ct)))
       ] in
       entry :: acc
     )
@@ -234,7 +234,7 @@ let next_game_state game_id next_player_position = match get_game_state game_id 
     if not (is_legal_move player_position next_player_position) then create_initial_game_state ()
     else {
       player_position = next_player_position;
-      obstacles = Game_grid.next obstacles ~width:20 ~height:20
+      obstacles = Game_grid.next obstacles ~width:15 ~height:15
     }
 
 let () =
