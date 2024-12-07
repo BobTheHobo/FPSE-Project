@@ -205,7 +205,7 @@ let create_initial_game_state () : game_state = {
   obstacles = init_grid_map_state;
   player_position = { x = 0; y = 0 };
 }
-(* let get_game_state game_id = Hashtbl.find game_states game_id *)
+let get_game_state game_id = Hashtbl.find game_states game_id
 let set_game_state game_id new_state = Hashtbl.set game_states ~key:game_id ~data:new_state
 
 let create_new_game_state () =
@@ -219,6 +219,23 @@ type game_post_request_body = {
   game_id : int;
   player_position : position;
 } [@@deriving yojson]
+
+let position_to_coordinate (pos : position) : Map_grid.Coordinate.t = {
+  Map_grid.Coordinate.x = pos.x;
+  y = pos.y;
+}
+
+let is_legal_move (last_pos : Map_grid.Coordinate.t) (curr_pos : Map_grid.Coordinate.t) =
+  abs (last_pos.x - curr_pos.x) < 2 && abs (last_pos.y - curr_pos.y) < 2
+
+let next_game_state game_id next_player_position = match get_game_state game_id with
+  | None -> create_initial_game_state ()
+  | Some { obstacles; player_position } ->
+    if not (is_legal_move player_position next_player_position) then create_initial_game_state ()
+    else {
+      player_position = next_player_position;
+      obstacles = Game_grid.next obstacles ~width:20 ~height:20
+    }
 
 let () =
   run 
@@ -248,10 +265,11 @@ let () =
         "");
       post "/game" (fun request ->
         let%lwt body = body request in
-        let { game_id; player_position = _ } = body |> Yojson.Safe.from_string |> game_post_request_body_of_yojson in
+        let { game_id; player_position  } = body |> Yojson.Safe.from_string |> game_post_request_body_of_yojson in
+        let player_coordinate = position_to_coordinate player_position in
         let (game_id, game_state) =
           if game_id = (-1) then create_new_game_state ()
-          else create_new_game_state ()
+          else (game_id, next_game_state game_id player_coordinate)
         in encode_response_body game_id game_state.obstacles game_state.player_position
         |> respond ~headers:
           [
