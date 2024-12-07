@@ -2,6 +2,7 @@ open Core
 open OUnit2
 open Game
 
+
 module Cell = struct
   type t = { x : int; y : int } [@@deriving sexp, compare, equal]
   let to_string key = Sexp.to_string (sexp_of_t key)
@@ -72,7 +73,7 @@ let get_ice_set = Cell_type.TSet.of_list [get_ice]
 
 let is_same_type (a : Cell_type.t) (b : Cell_type.t) = Cell_type.compare a b = 0
   
-(* let get_water_set = Cell_type.TSet.of_list [get_water] *)
+let get_water_set = Cell_type.TSet.of_list [get_water]
 
 let test_all_dead_from_solitude_example _ =
   let coordinate_1 = { Map_grid.Coordinate.x = 0; y = 0 } in
@@ -147,6 +148,25 @@ let test_fire_ice_collision_example _ =
     assert_bool "Ice shouldn't equal water" (not (is_same_type hd get_ice));
   )
   | _ -> failwith "lol"
+  
+let rand_grid_dimension = (Quickcheck.random_value ~seed:`Nondeterministic (Int.gen_incl 3 50))
+
+let test_all_dead_from_solitude_quickcheck _ =
+  printf "Got random grid_dimension %d\n" rand_grid_dimension;
+  let width = rand_grid_dimension in
+  let height = rand_grid_dimension in
+  let solitude_pos_sequence = Sequence.unfold ~init:0 ~f:(fun current ->
+    if current >= rand_grid_dimension then
+      None
+    else
+      Some (current, current + 2)
+  ) in
+  let solitude_pos_list = Sequence.to_list solitude_pos_sequence in
+  let m = List.fold solitude_pos_list ~init:(M_grid.empty) ~f:(fun acc pos ->
+    Map.add_exn acc ~key:({ x = pos; y = pos }) ~data:(get_water_set)
+  ) in
+  let mnext = M_grid.next m ~height ~width in
+  assert_equal (Map.length mnext) 0
 
 let loop (grid : Grid.t) (iter_limit : int) ~(f : Grid.t -> int -> unit) : unit
     =
@@ -191,8 +211,8 @@ let test_blinker _ =
         assert_equal "(((x 2)(y 1))((x 2)(y 2))((x 2)(y 3)))" str
       else assert_equal "(((x 1)(y 2))((x 2)(y 2))((x 3)(y 2)))" str)
 
-let suite =
-  "suite"
+let example_suite =
+  "Example suite"
   >::: [
         "test all_dead_from_solitude example" >:: test_all_dead_from_solitude_example;
         "test corners_alive_overpopulation example" >:: test_corners_alive_overpopulation_example;
@@ -200,6 +220,14 @@ let suite =
         "test test_fire_ice_collision" >:: test_fire_ice_collision_example;
         "test simple next" >:: test_simple_next;
         "test blinker 10 iterations" >:: test_blinker;
-       ]
+       ];;
+    
+let quickcheck_suite =
+  "Quickcheck suite"
+  >::: [
+    "test all_dead_from_solitude quickcheck" >:: test_all_dead_from_solitude_quickcheck;
+  ];;
 
-let () = run_test_tt_main suite
+let () = 
+  run_test_tt_main example_suite;;
+  run_test_tt_main quickcheck_suite
