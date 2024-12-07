@@ -128,6 +128,16 @@ let test_fire_ice_collision_example _ =
       assert_bool "Fire shouldn't equal water" (not (is_same_type hd get_fire));
       assert_bool "Ice shouldn't equal water" (not (is_same_type hd get_ice))
   | _ -> failwith "lol"
+  
+let test_no_collision_example _ =
+  let c = create_coordinate ~x:0 ~y:0 in
+  let firem = M_grid.CMap.of_alist_exn [ (c, get_fire_set ) ] in
+  let icem = M_grid.CMap.of_alist_exn [ (c, get_ice_set ) ] in
+  let waterm = M_grid.CMap.of_alist_exn [ (c, get_water_set ) ] in
+  let (fire_h, ice_h, water_h) = (M_grid.handle_collisions firem, M_grid.handle_collisions icem, M_grid.handle_collisions waterm) in 
+  assert_equal (Map.length fire_h) 1;
+  assert_equal (Map.length ice_h) 1;
+  assert_equal (Map.length water_h) 1
 
 let rand_grid_dimension =
   Quickcheck.random_value ~seed:`Nondeterministic (Int.gen_incl 3 50)
@@ -156,8 +166,9 @@ let example_suite =
          >:: test_all_dead_from_solitude_example;
          "test corners_alive_overpopulation example"
          >:: test_corners_alive_overpopulation_example;
-         "test test_spawn_example" >:: test_spawn_example;
-         "test test_fire_ice_collision" >:: test_fire_ice_collision_example;
+         "test test_spawn example" >:: test_spawn_example;
+         "test test_fire_ice_collision example" >:: test_fire_ice_collision_example;
+         "test test_no_collision example" >:: test_no_collision_example;
        ]
 
 let quickcheck_suite =

@@ -1,12 +1,16 @@
 open Core
 
 module Params = struct
+  [@@@coverage off]
   type t = { b : int; s1 : int; s2 : int } [@@deriving sexp, compare]
+  [@@@coverage on]
 end
 
 module Coordinate = struct
   module T = struct
+    [@@@coverage off]
     type t = { x : int; y : int } [@@deriving sexp, compare]
+    [@@@coverage on]
   end
 
   include T
