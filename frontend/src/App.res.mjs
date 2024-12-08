@@ -4,9 +4,23 @@ import * as Grid from "./Grid.res.mjs";
 import * as JsxRuntime from "react/jsx-runtime";
 
 function App(props) {
-  return JsxRuntime.jsx("div", {
-              children: JsxRuntime.jsx(Grid.make, {}),
-              className: "p-6"
+  return JsxRuntime.jsxs("div", {
+              children: [
+                JsxRuntime.jsx("h1", {
+                      children: "Win at life (literally)",
+                      className: "text-white text-6xl"
+                    }),
+                JsxRuntime.jsx("h3", {
+                      children: "You: 0",
+                      className: "text-white"
+                    }),
+                JsxRuntime.jsx("h3", {
+                      children: "Computer: 0",
+                      className: "text-white mb-24"
+                    }),
+                JsxRuntime.jsx(Grid.make, {})
+              ],
+              className: "p-6 flex flex-col justify-center items-center bg-gray-900 h-screen"
             });
 }
 

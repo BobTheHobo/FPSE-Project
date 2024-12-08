@@ -10,9 +10,9 @@ module Coordinate : sig
   end
 
   include T
+  type t = T.t [@@deriving sexp]
   module CSet : module type of Set.Make (T)
 
-  type t = T.t
   type grid = { coordinates : CSet.t; width : int; height : int }
 
   val to_string : t -> string
@@ -39,7 +39,7 @@ end
 module Make (Cell_type : CELL_TYPE) : sig
   module CMap : Map.S with type Key.t = Coordinate.t
 
-  type t = Cell_type.TSet.t CMap.t
+  type t = Cell_type.TSet.t CMap.t [@@deriving sexp]
 
   val empty : t
   val handle_collisions : t -> t

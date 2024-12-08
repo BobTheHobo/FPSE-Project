@@ -336,7 +336,7 @@ function Grid(props) {
                                 className: "row"
                               }, String(y));
                   }),
-              className: "grid"
+              className: "grid border border-red-500"
             });
 }
 

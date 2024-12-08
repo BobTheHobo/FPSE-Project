@@ -1,8 +1,8 @@
 (library
  (name game)
- (modules map_grid)
+ (modules map_grid state)
  (preprocess
-  (pps ppx_jane bisect_ppx))
+  (pps ppx_jane bisect_ppx ppx_yojson_conv))
  (libraries core_unix core_unix.sys_unix str core)
  (instrumentation
   (backend bisect_ppx)))

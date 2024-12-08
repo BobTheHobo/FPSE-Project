@@ -234,7 +234,8 @@ let make = () => {
         let (x, y) = pos
         grid->getExn(x)->setExn(y, 4)})
 
-  <div className="grid">
+  let className = "grid"
+  <div className={className ++ " border border-red-500"}>
     {grid
     ->Array.mapWithIndex((row, y) =>
       <div key={y->string_of_int} className="row">

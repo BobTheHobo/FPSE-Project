@@ -14,6 +14,7 @@ module Coordinate = struct
   end
 
   include T
+  type t = T.t [@@deriving sexp]
   module CSet = Set.Make (T)
 
   [@@@coverage off]
@@ -99,10 +100,19 @@ module type CELL_TYPE = sig
   (** [handle_collisions tset] is [Some t] if you want to encode an interaction between two overlapping cell types. Otherwise it is [None]*)
 end
 
-module Make (Cell_type : CELL_TYPE) = struct
+module type MapGrid = functor (Cell_type : CELL_TYPE) -> sig
+  module CMap : module type of Map.Make(Coordinate)
+  type t = Cell_type.TSet.t CMap.t [@@deriving sexp]
+  val empty : t
+  
+  val handle_collisions : t -> t
+  val next : t -> width : int -> height : int -> t
+end
+
+module Make : MapGrid = functor (Cell_type : CELL_TYPE)-> struct
   module CMap = Map.Make (Coordinate)
 
-  type t = Cell_type.TSet.t CMap.t
+  type t = Cell_type.TSet.t CMap.t [@@deriving sexp]
 
   let empty = CMap.empty
 
