@@ -100,46 +100,10 @@ let make = () => {
         let fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
         let iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
         let waterTuples = obstaclesToTuples(obstaclesRaw, "Water");
-        Js.log("Fire tuples");
-        Js.log(fireTuples);
-        Js.log("Ice tuples");
-        Js.log(iceTuples);
-        Js.log("Water tuples");
-        Js.log(waterTuples);
         setFire(_ => fireTuples);
         setIce(_ => iceTuples);
         setWater(_ => waterTuples)
-        // setIce(_ => iceTuples);
       }
-      // let fetchCall = async () => {
-      //   let response = await fetch(
-      //     "http://localhost:8080/get_obstacles",
-      //     {
-      //       method: #POST,
-      //       body: { "fire": fire, "ice": ice, "player": position }->stringifyAny->Belt.Option.getExn->Body.string,
-      //       headers: Headers.fromObject({
-      //         "Content-type": "application/json",
-      //       }),
-      //     },
-      //   )
-
-      //   let json_out = await response->Response.json
-      //   Js.log(json_out)
-      //   let dict_out = switch decodeObject(json_out) {
-      //   | Some(dict_data) => dict_data
-      //   | None => let dict_data = Js.Dict.empty()
-      //     Js.Dict.set(dict_data, "fire", Js.Json.Array([]))
-      //     Js.Dict.set(dict_data, "ice", Js.Json.Array([]))
-      //     Js.Dict.set(dict_data, "player", Js.Json.Array([
-      //       Js.Json.number(0.0),
-      //       Js.Json.number(0.0),
-      //     ]))
-      //     dict_data
-      //   }
-      //   setFire(_ => dict_out->Js.Dict.unsafeGet("fire")->decode_obstacles)
-      //   setIce(_ => dict_out->Js.Dict.unsafeGet("ice")->decode_obstacles)
-      // }
-
       gameCall()
       |> ignore
     }
@@ -229,8 +193,7 @@ let make = () => {
     grid->getExn(x)->setExn(y, 5)
   })
 
-  let className = "grid"
-  <div className={className ++ " border border-red-500"}>
+  <div className="h-[360px]">
     {grid
     ->Array.mapWithIndex((row, y) =>
       <div key={y->string_of_int} className="row">

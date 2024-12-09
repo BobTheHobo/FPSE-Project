@@ -172,12 +172,6 @@ function Grid(props) {
       var fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
       var iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
       var waterTuples = obstaclesToTuples(obstaclesRaw, "Water");
-      console.log("Fire tuples");
-      console.log(fireTuples);
-      console.log("Ice tuples");
-      console.log(iceTuples);
-      console.log("Water tuples");
-      console.log(waterTuples);
       setFire(function (param) {
             return fireTuples;
           });
@@ -325,7 +319,7 @@ function Grid(props) {
                                 className: "row"
                               }, String(y));
                   }),
-              className: "grid border border-red-500"
+              className: "h-[360px]"
             });
 }
 
