@@ -23,20 +23,14 @@ type position = {
   y : int
 }
 
-let encode_request_body = (game_id: int, player_position: position) => 
+let encode_request_body = (player_position: position) => 
 {
-  "game_id": game_id,
   "player_position": player_position
 }->stringifyAny->Belt.Option.getExn->Body.string
 
 let decode_response_body = (payload) => switch decodeObject(payload) {
   | Some(response_body) => response_body
   | None => Js.Dict.empty()
-}
-
-let number_to_int = (number) => switch decodeNumber(number) {
-  | Some(a) => int_of_float(a)
-  | _ => -1
 }
 
 let decodeCoordinate = coordinate => switch decodeObject(coordinate) {
@@ -81,7 +75,6 @@ let make = () => {
   let (fire, setFire) = useState(() => [])
   let (ice, setIce) = useState(() => [])
   let (isValidMove, setIsValidMove) = useState(() => true)
-  let (gameId, setGameId) = useState(() => (-1))
   let gridSize = 15
   let maxX = gridSize - 1
   let maxY = gridSize - 1
@@ -90,18 +83,17 @@ let make = () => {
   
   let fetchObstacles = () => {
     if (isValidMove) {
-      Js.log("HEREEEEE");
       let gameCall = async () => {
         let response = await fetch("http://localhost:8080/game", {
           method: #POST,
-          body: encode_request_body(gameId, tupleToPosition(position)),
+          body: encode_request_body(tupleToPosition(position)),
           headers: Headers.fromObject({
             "Content-Type": "application/json"
-          })
+          }),
+          credentials: #"include"
         });
         let payload = await Response.json(response);
         let decoded = decode_response_body(payload);
-        let gameIdNum = Js.Dict.unsafeGet(decoded, "game_id");
         let obstaclesRaw = Js.Dict.unsafeGet(decoded, "obstacles");
         let fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
         let iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
@@ -109,8 +101,6 @@ let make = () => {
         Js.log(fireTuples);
         Js.log("Ice tuples");
         Js.log(iceTuples);
-        let asInt = number_to_int(gameIdNum);
-        setGameId(_ => asInt);
         if (Array.length(fireTuples) > 0) {
           setFire(_ => fireTuples);
         }
@@ -223,7 +213,6 @@ let make = () => {
   }, [])
 
   
-  Js.log(gameId)
   let (x, y) = position
   grid->getExn(maxX)->setExn(maxY, 1)
   grid->getExn(x)->setExn(y, 2)

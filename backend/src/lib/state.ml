@@ -104,34 +104,18 @@ let create_initial_obstacles ~(width : int) ~(height : int) =
 let get_game_state_tbl () = game_state_tbl
 
 let err_message (game_id : int) = "No game with the given id "^(Int.to_string game_id)^" found"
+      
+let new_game_state ~width ~height = {
+  player_position = { x = 0; y = 0 };
+  obstacles = create_initial_obstacles ~width ~height
+} 
 
-let next_game_state game_id next_player_position =
-  match get_game_state game_id with
-  | None -> failwith (err_message game_id)
-  | Some { obstacles; player_position } ->
-      if not (is_legal_move player_position next_player_position) then
-        failwith "lol"
-      else
-      let next_state = 
-      {
-        obstacles = Game_grid.next obstacles ~width:15 ~height:15;
-        player_position = next_player_position
-      }
-      in
-      set_game_state game_id next_state;
-      (game_id, next_state)
-
-let new_game ~width ~height =
-  let game_state = {
-    player_position = { x = 0; y = 0 };
-    obstacles = create_initial_obstacles ~width ~height
-  } in
-  let game_id = next_game_id () in
-  set_game_state game_id game_state;
-  (
-    game_id,
-    game_state
-  )
+let next_game_state next_position ~last_position ~obstacles_state =
+  if not (is_legal_move next_position last_position) then new_game_state ~width:15 ~height:15
+  else {
+    obstacles = Game_grid.next obstacles_state ~width:15 ~height:15;
+    player_position = next_position
+  }
 
 let coordinate_to_assoc (coordinate : Map_grid.Coordinate.t) =
   `Assoc [ ("x", `Int coordinate.x); ("y", `Int coordinate.y) ]
@@ -154,12 +138,11 @@ let encode_map_grid (map_grid : Game_grid.t) =
   in
   `List map_as_list
 
-let encode_response_body (game_id : int) (map_grid : Game_grid.t)
+let encode_response_body (map_grid : Game_grid.t)
     (player : Map_grid.Coordinate.t) : string =
   let json =
     `Assoc
       [
-        ("game_id", `Int game_id);
         ("obstacles", encode_map_grid map_grid);
         ("player", coordinate_to_assoc player);
       ]

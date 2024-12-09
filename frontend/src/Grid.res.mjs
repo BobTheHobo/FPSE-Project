@@ -26,9 +26,8 @@ function getColorClass(state) {
   }
 }
 
-function encode_request_body(game_id, player_position) {
+function encode_request_body(player_position) {
   return Belt_Option.getExn(JSON.stringify({
-                  game_id: game_id,
                   player_position: player_position
                 }));
 }
@@ -39,15 +38,6 @@ function decode_response_body(payload) {
     return response_body;
   } else {
     return {};
-  }
-}
-
-function number_to_int(number) {
-  var a = Js_json.decodeNumber(number);
-  if (a !== undefined) {
-    return a | 0;
-  } else {
-    return -1;
   }
 }
 
@@ -152,11 +142,6 @@ function Grid(props) {
       });
   var setIsValidMove = match$3[1];
   var isValidMove = match$3[0];
-  var match$4 = React.useState(function () {
-        return -1;
-      });
-  var setGameId = match$4[1];
-  var gameId = match$4[0];
   var maxX = 14;
   var maxY = 14;
   var grid = Belt_Array.map(Belt_Array.make(15, undefined), (function () {
@@ -166,18 +151,17 @@ function Grid(props) {
     if (!isValidMove) {
       return ;
     }
-    console.log("HEREEEEE");
     var gameCall = async function () {
       var response = await fetch("http://localhost:8080/game", {
             method: "POST",
-            body: Caml_option.some(encode_request_body(gameId, tupleToPosition(position))),
+            body: Caml_option.some(encode_request_body(tupleToPosition(position))),
             headers: Caml_option.some(new Headers({
                       "Content-Type": "application/json"
-                    }))
+                    })),
+            credentials: "include"
           });
       var payload = await response.json();
       var decoded = decode_response_body(payload);
-      var gameIdNum = decoded["game_id"];
       var obstaclesRaw = decoded["obstacles"];
       var fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
       var iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
@@ -185,10 +169,6 @@ function Grid(props) {
       console.log(fireTuples);
       console.log("Ice tuples");
       console.log(iceTuples);
-      var asInt = number_to_int(gameIdNum);
-      setGameId(function (param) {
-            return asInt;
-          });
       if (fireTuples.length > 0) {
         setFire(function (param) {
               return fireTuples;
@@ -316,7 +296,6 @@ function Grid(props) {
                     document.removeEventListener("keyup", onKeyDown);
                   });
         }), []);
-  console.log(gameId);
   Belt_Array.setExn(Belt_Array.getExn(grid, maxX), maxY, 1);
   Belt_Array.setExn(Belt_Array.getExn(grid, position[0]), position[1], 2);
   Belt_Array.forEach(match$1[0], (function (pos) {
