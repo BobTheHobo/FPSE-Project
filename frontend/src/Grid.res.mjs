@@ -21,6 +21,8 @@ function getColorClass(state) {
         return "fire";
     case 4 :
         return "ice";
+    case 5 :
+        return "water";
     default:
       return "default";
   }
@@ -138,10 +140,14 @@ function Grid(props) {
       });
   var setIce = match$2[1];
   var match$3 = React.useState(function () {
+        return [];
+      });
+  var setWater = match$3[1];
+  var match$4 = React.useState(function () {
         return true;
       });
-  var setIsValidMove = match$3[1];
-  var isValidMove = match$3[0];
+  var setIsValidMove = match$4[1];
+  var isValidMove = match$4[0];
   var maxX = 14;
   var maxY = 14;
   var grid = Belt_Array.map(Belt_Array.make(15, undefined), (function () {
@@ -165,21 +171,22 @@ function Grid(props) {
       var obstaclesRaw = decoded["obstacles"];
       var fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
       var iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
+      var waterTuples = obstaclesToTuples(obstaclesRaw, "Water");
       console.log("Fire tuples");
       console.log(fireTuples);
       console.log("Ice tuples");
       console.log(iceTuples);
-      if (fireTuples.length > 0) {
-        setFire(function (param) {
-              return fireTuples;
-            });
-      }
-      if (iceTuples.length > 0) {
-        return setIce(function (param) {
-                    return iceTuples;
-                  });
-      }
-      
+      console.log("Water tuples");
+      console.log(waterTuples);
+      setFire(function (param) {
+            return fireTuples;
+          });
+      setIce(function (param) {
+            return iceTuples;
+          });
+      return setWater(function (param) {
+                  return waterTuples;
+                });
     };
     gameCall();
   };
@@ -303,6 +310,9 @@ function Grid(props) {
         }));
   Belt_Array.forEach(match$2[0], (function (pos) {
           Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 4);
+        }));
+  Belt_Array.forEach(match$3[0], (function (pos) {
+          Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 5);
         }));
   return JsxRuntime.jsx("div", {
               children: grid.map(function (row, y) {

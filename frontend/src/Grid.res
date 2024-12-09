@@ -14,6 +14,7 @@ let getColorClass = (state: int) => {
   | 2 => "player"
   | 3 => "fire"
   | 4 => "ice"
+  | 5 => "water"
   | _ => "default"
   }
 }
@@ -74,6 +75,7 @@ let make = () => {
   let (position, setPosition) = useState(() => (0, 0))
   let (fire, setFire) = useState(() => [])
   let (ice, setIce) = useState(() => [])
+  let (water, setWater) = useState(() => [])
   let (isValidMove, setIsValidMove) = useState(() => true)
   let gridSize = 15
   let maxX = gridSize - 1
@@ -97,16 +99,16 @@ let make = () => {
         let obstaclesRaw = Js.Dict.unsafeGet(decoded, "obstacles");
         let fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
         let iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
+        let waterTuples = obstaclesToTuples(obstaclesRaw, "Water");
         Js.log("Fire tuples");
         Js.log(fireTuples);
         Js.log("Ice tuples");
         Js.log(iceTuples);
-        if (Array.length(fireTuples) > 0) {
-          setFire(_ => fireTuples);
-        }
-        if (Array.length(iceTuples) > 0) {
-          setIce(_ => iceTuples);
-        } 
+        Js.log("Water tuples");
+        Js.log(waterTuples);
+        setFire(_ => fireTuples);
+        setIce(_ => iceTuples);
+        setWater(_ => waterTuples)
         // setIce(_ => iceTuples);
       }
       // let fetchCall = async () => {
@@ -222,6 +224,10 @@ let make = () => {
   ice->forEach(pos => {
         let (x, y) = pos
         grid->getExn(x)->setExn(y, 4)})
+  water->forEach(pos => {
+    let (x, y) = pos
+    grid->getExn(x)->setExn(y, 5)
+  })
 
   let className = "grid"
   <div className={className ++ " border border-red-500"}>

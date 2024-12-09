@@ -175,6 +175,6 @@ module Make : MapGrid = functor (Cell_type : CELL_TYPE)-> struct
                | None ->
                    Map.add_exn acc ~key
                      ~data:(Set.add Cell_type.TSet.empty cell)
-               | Some set -> Map.add_exn acc ~key ~data:(Set.add set cell)))
+               | Some set -> Map.set acc ~key ~data:(Set.add set cell)))
     |> handle_collisions
 end

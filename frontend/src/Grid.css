@@ -36,6 +36,11 @@
     animation: ice-flicker 1s infinite ease-in-out;
 }
 
+.water {
+    background-color: blue;
+    animation: ice-flicker 1s infinite ease-in-out;
+}
+
 .goal {
     background-color: green;
 }
