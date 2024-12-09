@@ -39,12 +39,13 @@ let encode_map_grid (map_grid : State.Game_grid.t) =
   `List map_as_list
 
 let encode_response_body (map_grid : State.Game_grid.t)
-    (player : Map_grid.Coordinate.t) : string =
+    (player : Map_grid.Coordinate.t) (is_dead : bool) : string =
   let json =
     `Assoc
       [
         ("obstacles", encode_map_grid map_grid);
         ("player", coordinate_to_assoc player);
+        ("is_dead", `Bool is_dead)
       ]
   in
   Yojson.Safe.to_string json
@@ -69,11 +70,13 @@ let () =
                | None -> State.new_game_state ~width:15 ~height:15
                | Some _ -> State.next_game_state player_coordinate game_id_encoded
              in
+             let is_dead = match Map.find game_state.obstacles player_coordinate with | None -> false | Some _ -> true
+              in
              let str = State.game_grid_to_string game_state.obstacles in
              Dream.log "obstacles state %s\n" str;
              State.set_game_state game_id_encoded game_state;
              encode_response_body game_state.obstacles
-               game_state.player_position
+               game_state.player_position is_dead
              |> fun body ->
              let response =
                Dream.response body
