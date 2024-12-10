@@ -39,7 +39,7 @@ end
 
 module Game_grid = Map_grid.Make (Cell_type)
 
-let game_grid_to_string grid = 
+(* let game_grid_to_string grid = 
   Game_grid.sexp_of_t grid
   |> Sexp.to_string
 
@@ -49,14 +49,14 @@ type game_state = {
   height : int;
   width : int;
 }
-[@@deriving sexp]
+[@@deriving sexp] *)
 
-let game_state_tbl_to_string tbl =
+(* let game_state_tbl_to_string tbl =
   Hashtbl.sexp_of_t
     (fun key -> Int.sexp_of_t key)
     (fun state -> sexp_of_game_state state)
     tbl
-  |> Sexp.to_string
+  |> Sexp.to_string *)
 
 let fire =
   match Cell_type.type_list with fire :: _ -> fire | _ -> failwith "lol"
@@ -84,6 +84,16 @@ module StateTbl = struct
   }
   let tbl : (string, t) Hashtbl.t = Hashtbl.create (module String)
   
+  let to_string (t : t) =
+    Printf.sprintf
+    ("{\n"^^
+      "  player_position: { x: %d, y: %d },\n"^^
+      "  is_dead: %s,\n"^^
+      "  obstacles: %s\n"^^
+    "}")
+    (t.player_position.x) (t.player_position.y)
+    (Bool.to_string t.is_dead)
+    (Game_grid.to_string t.obstacles)
   let get (key : string) = Hashtbl.find tbl key
   let delete (key : string) = Hashtbl.remove tbl key
   let set ~(key : string) (state : t)= Hashtbl.set tbl ~key ~data:state
@@ -180,13 +190,30 @@ module Supervisor = struct
     
   let get_game_state (id : string) = match StateTbl.get id with
     | Some v -> v
-    | None -> {
-      obstacles = Game_grid.empty;
-      player_position = { x = -1; y = -1 };
-      is_dead = true
+    | None -> failwith ("No game with id "^id^" could be found")
+    
+  let get_game_config (id : string) = match ConfigTbl.get id with
+    | Some v -> v
+    | None -> failwith ("No game with id " ^ id ^ " could be found")
+    
+  let is_player_dead (player_position : Map_grid.Coordinate.t) (obstacle_coordinates : Map_grid.Coordinate.CSet.t) =
+    Set.mem obstacle_coordinates player_position
+    
+  let next_game_state (id : string) (next_position : Map_grid.Coordinate.t) : StateTbl.t =
+    (get_game_state id, get_game_config id)
+    |> fun ({ StateTbl.obstacles; _}, { ConfigTbl.width; height }) ->
+      let next_grid_state = Game_grid.next obstacles ~width:(width) ~height:(height) in
+      let obs_coordinates = Game_grid.coordinate_set next_grid_state in
+      let is_dead = is_player_dead next_position obs_coordinates in
+      (next_grid_state, is_dead)
+    |> fun (obstacles, is_dead) -> {
+      StateTbl.is_dead = is_dead;
+      player_position = next_position;
+      obstacles = obstacles
     }
 end
 
+(*
 let max_game_count = 10
 
 let game_state_tbl : (int, game_state) Hashtbl.t = Hashtbl.create (module Int)
@@ -237,8 +264,8 @@ let create_initial_obstacles ~(width : int) ~(height : int) =
   let ice_pos = get_oscillating_pattern { x = 4; y = height - 2 } in
   let mapped_to_fire = List.map fire_pos ~f:(fun c -> (c, fire_set)) in
   let mapped_to_ice = List.map ice_pos ~f:(fun c -> (c, ice_set)) in
-  Game_grid.CMap.of_alist_exn (mapped_to_fire @ mapped_to_ice)
-let new_game_state ~width ~height =
+  Game_grid.CMap.of_alist_exn (mapped_to_fire @ mapped_to_ice) *)
+(* let new_game_state ~width ~height =
   {
     player_position = { x = 0; y = 0 };
     obstacles = create_initial_obstacles ~width ~height;
@@ -257,4 +284,4 @@ let next_game_state next_position game_id =
       player_position = next_position;
       width;
       height;
-    }
+    } *)

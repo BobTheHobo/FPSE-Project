@@ -36,12 +36,14 @@ module type CELL_TYPE = sig
   val handle_collisions : TSet.t -> t option
 end
 
-module Make (Cell_type : CELL_TYPE) : sig
+module Make (CellType: CELL_TYPE) : sig
   module CMap : Map.S with type Key.t = Coordinate.t
 
-  type t = Cell_type.TSet.t CMap.t [@@deriving sexp]
+  type t = CellType.TSet.t CMap.t [@@deriving sexp]
 
   val empty : t
+  val to_string : t -> string
+  val coordinate_set : t -> Coordinate.CSet.t
   val handle_collisions : t -> t
   val next : t -> width:int -> height:int -> t
 end

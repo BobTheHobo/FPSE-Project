@@ -100,67 +100,88 @@ module type CELL_TYPE = sig
   (** [handle_collisions tset] is [Some t] if you want to encode an interaction between two overlapping cell types. Otherwise it is [None]*)
 end
 
-module type MapGrid = functor (Cell_type : CELL_TYPE) -> sig
+module type MAP_GRID = functor (Cell_type : CELL_TYPE) -> sig
   module CMap : module type of Map.Make(Coordinate)
   type t = Cell_type.TSet.t CMap.t [@@deriving sexp]
   val empty : t
-  
+  val to_string : t -> string
+  val coordinate_set : t -> Coordinate.CSet.t
   val handle_collisions : t -> t
   val next : t -> width : int -> height : int -> t
 end
 
-module Make : MapGrid = functor (Cell_type : CELL_TYPE)-> struct
+module Make : MAP_GRID = functor (CellType : CELL_TYPE)-> struct
   module CMap = Map.Make (Coordinate)
 
-  type t = Cell_type.TSet.t CMap.t [@@deriving sexp]
+  type t = CellType.TSet.t CMap.t [@@deriving sexp]
 
   let empty = CMap.empty
+  
+  let assoc_to_string (({ x; y }, cell_set): Coordinate.t * CellType.TSet.t) : string =
+    Printf.sprintf
+    (
+      "(%d, %d): [%s]"
+    ) x y (Sexp.to_string (CellType.TSet.sexp_of_t cell_set))
+
+  let to_string (t : t) : string =
+    Printf.sprintf
+    (
+      "{\n"^^"%s"^^"\n}"
+    )
+    (t
+    |> Map.to_alist
+    |> List.map ~f:(fun assoc -> "    " ^ assoc_to_string assoc)
+    |> String.concat ~sep:"\n")
 
   (** [lookup_neighbors m cell_type coordinate] is the coordinate set of
     each neighbor determined by [coordinate] that are of type [cell_type] 
     in [m]
   *)
-  let lookup_neighbors (m : t) (cell_type : Cell_type.t)
+  let lookup_neighbors (m : t) (cell_type : CellType.t)
       (coordinate : Coordinate.t) : Coordinate.CSet.t =
     Map.fold m ~init:Coordinate.CSet.empty ~f:(fun ~key ~data acc ->
         if not (Coordinate.is_neighbor coordinate key) then acc
         else
           data
-          |> Set.filter ~f:(fun cell -> Cell_type.compare cell cell_type = 0)
+          |> Set.filter ~f:(fun cell -> CellType.compare cell cell_type = 0)
           |> fun filtered ->
           if Set.length filtered = 1 then Set.add acc key else acc)
 
   (** [handle_collisions m] is the final state of the grid where each coordinate maps to a Cell_type.TSet [set] where [Set.length set] <= 1 *)
   let handle_collisions (m : t) : t =
     Map.map m ~f:(fun data ->
-        match Cell_type.handle_collisions data with
+        match CellType.handle_collisions data with
         | None -> None
         | Some cell -> Some cell)
     |> Map.fold ~init:empty ~f:(fun ~key ~data acc ->
            match data with
            | None -> acc
            | Some cell ->
-               Map.set acc ~key ~data:(Set.add Cell_type.TSet.empty cell))
+               Map.set acc ~key ~data:(Set.add CellType.TSet.empty cell))
 
   (** [coordinates_of_type m cell] is the set [set] where
     [Set.every set ~f:(fun coordinate -> m[coordinate].type = cell)]
   *)
-  let coordinates_of_type (m : t) (cell : Cell_type.t) : Coordinate.CSet.t =
+  let coordinates_of_type (m : t) (cell : CellType.t) : Coordinate.CSet.t =
     m |> Map.keys
     |> List.fold ~init:Coordinate.CSet.empty ~f:(fun acc coordinate ->
            lookup_neighbors m cell coordinate |> Set.union acc)
+    
+  let coordinate_set (m : t) : Coordinate.CSet.t =
+    Map.keys m
+    |> List.fold ~init:(Coordinate.CSet.empty) ~f:(fun acc coordinate -> Set.add acc coordinate)
 
   (** [cell_types m] is the Cell_type.TSet [set] of every present cell type in the map *)
-  let cell_types (m : t) : Cell_type.TSet.t =
+  let cell_types (m : t) : CellType.TSet.t =
     m |> Map.data
-    |> List.fold ~init:Cell_type.TSet.empty ~f:(fun acc cells ->
+    |> List.fold ~init:CellType.TSet.empty ~f:(fun acc cells ->
            Set.fold cells ~init:acc ~f:(fun acc cell -> Set.add acc cell))
 
   (** [next m] is the new map state given the current state m *)
   let next (m : t) ~(width : int) ~(height : int) =
     m |> cell_types
     |> Set.fold ~init:CMap.empty ~f:(fun acc cell ->
-           let { Params.b; s1; s2 } = Cell_type.params_of_t cell in
+           let { Params.b; s1; s2 } = CellType.params_of_t cell in
            let coordinates = coordinates_of_type m cell in
            let spawned =
              Coordinate.spawn_set { coordinates; width; height } ~b
@@ -174,7 +195,7 @@ module Make : MapGrid = functor (Cell_type : CELL_TYPE)-> struct
                match Map.find acc key with
                | None ->
                    Map.add_exn acc ~key
-                     ~data:(Set.add Cell_type.TSet.empty cell)
+                     ~data:(Set.add CellType.TSet.empty cell)
                | Some set -> Map.set acc ~key ~data:(Set.add set cell)))
     |> handle_collisions
 end

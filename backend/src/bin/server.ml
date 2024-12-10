@@ -14,7 +14,7 @@ let get_game_cookie request =
   | Some game_id ->
       Dream.log "game id %s\n" game_id;
       game_id
-  | None -> Int.to_string (State.next_game_id ())
+  | None -> State.Supervisor.get_id_then_incr ()
 
 let coordinate_to_assoc (coordinate : Map_grid.Coordinate.t) =
   `Assoc [ ("x", `Int coordinate.x); ("y", `Int coordinate.y) ]
@@ -36,18 +36,6 @@ let encode_map_grid (map_grid : State.Game_grid.t) =
         entry :: acc)
   in
   `List map_as_list
-
-let encode_response_body (map_grid : State.Game_grid.t)
-    (player : Map_grid.Coordinate.t) (is_dead : bool) : string =
-  let json =
-    `Assoc
-      [
-        ("obstacles", encode_map_grid map_grid);
-        ("player", coordinate_to_assoc player);
-        ("is_dead", `Bool is_dead);
-      ]
-  in
-  Yojson.Safe.to_string json
   
 let encode_game_response_body (game_state : State.StateTbl.t) =
   `Assoc [
@@ -87,30 +75,19 @@ let () =
              Lwt.return response);
          Dream.post "/game" (fun request ->
              let game_id = get_game_cookie request in
-             let game_id_encoded = Int.of_string game_id in
-             Dream.log "Received game_id: %s\n" game_id;
+             let game_state = State.Supervisor.get_game_state game_id in
+             let game_state_str = State.StateTbl.to_string game_state in
+             Dream.log "State for id %s: %s" game_id game_state_str;
              let%lwt body = Dream.body request in
              let { player_position } =
                body |> Yojson.Safe.from_string
                |> game_post_request_body_of_yojson
              in
-             let player_coordinate = position_to_coordinate player_position in
-             let game_state =
-               match State.get_game_state game_id_encoded with
-               | None -> State.new_game_state ~width:15 ~height:15
-               | Some _ ->
-                   State.next_game_state player_coordinate game_id_encoded
-             in
-             let is_dead =
-               match Map.find game_state.obstacles player_coordinate with
-               | None -> false
-               | Some _ -> true
-             in
-             let str = State.game_grid_to_string game_state.obstacles in
-             Dream.log "obstacles state %s\n" str;
-             State.set_game_state game_id_encoded game_state;
-             encode_response_body game_state.obstacles
-               game_state.player_position is_dead
+             let pos = position_to_coordinate player_position in
+             let next_game_state = State.Supervisor.next_game_state game_id pos in
+             let next_game_state_str = State.StateTbl.to_string next_game_state in
+             Dream.log "Computed next state %s" next_game_state_str;
+             encode_game_response_body next_game_state
              |> fun body ->
              let response =
                Dream.response body
