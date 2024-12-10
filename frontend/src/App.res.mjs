@@ -2,6 +2,8 @@
 
 import * as Grid from "./Grid.res.mjs";
 import * as React from "react";
+import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
+import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as Placeholder from "./Placeholder.res.mjs";
 import * as GameConfigForm from "./GameConfigForm.res.mjs";
 import * as JsxRuntime from "react/jsx-runtime";
@@ -16,16 +18,40 @@ function App(props) {
   var match = React.useState(function () {
         return defaultOptions;
       });
+  var fireParams = match[0];
   var match$1 = React.useState(function () {
         return defaultOptions;
       });
+  var iceParams = match$1[0];
   var match$2 = React.useState(function () {
         return defaultOptions;
       });
+  var waterParams = match$2[0];
   var match$3 = React.useState(function () {
         return false;
       });
   var grid = match$3[0] ? JsxRuntime.jsx(Grid.make, {}) : JsxRuntime.jsx(Placeholder.make, {});
+  var startGame = function () {
+    var fetchCall = async function () {
+      var response = await fetch("http://localhost:8080/game/new", {
+            method: "POST",
+            body: Caml_option.some(Belt_Option.getExn(JSON.stringify({
+                          fire: fireParams,
+                          ice: iceParams,
+                          water: waterParams,
+                          width: 20,
+                          height: 20
+                        }))),
+            headers: Caml_option.some(new Headers({
+                      "Content-Type": "application/json"
+                    })),
+            credentials: "include"
+          });
+      var payload = await response.json();
+      console.log(payload);
+    };
+    fetchCall();
+  };
   return JsxRuntime.jsxs("main", {
               children: [
                 JsxRuntime.jsxs("div", {
@@ -50,23 +76,26 @@ function App(props) {
                         JsxRuntime.jsxs("div", {
                               children: [
                                 JsxRuntime.jsx(GameConfigForm.make, {
-                                      value: match[0],
+                                      value: fireParams,
                                       onValueChange: match[1],
                                       cellType: "Fire"
                                     }),
                                 JsxRuntime.jsx(GameConfigForm.make, {
-                                      value: match$1[0],
+                                      value: iceParams,
                                       onValueChange: match$1[1],
                                       cellType: "Ice"
                                     }),
                                 JsxRuntime.jsx(GameConfigForm.make, {
-                                      value: match$2[0],
+                                      value: waterParams,
                                       onValueChange: match$2[1],
                                       cellType: "Water"
                                     }),
                                 JsxRuntime.jsx("button", {
                                       children: "Begin game",
-                                      className: "mt-4 border border-gray-600 rounded-md h-12 px-4 text-white bg-blue-700"
+                                      className: "mt-4 border border-gray-600 rounded-md h-12 px-4 text-white bg-blue-700",
+                                      onClick: (function (param) {
+                                          startGame();
+                                        })
                                     })
                               ],
                               className: "p-4"
