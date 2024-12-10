@@ -160,7 +160,8 @@ module Supervisor = struct
       |> fun coordinates -> Pattern.to_coordinate_map_alist coordinates singleton
       |> fun entries -> acc @ entries)
     |> List.filter ~f:(fun (coordinate, _) ->
-      coordinate.x < width && coordinate.y < height
+      (coordinate.x > -1 && coordinate.x < width) 
+      && (coordinate.y > -1 && coordinate.y < height)
     )
     |> List.fold ~init:(Game_grid.empty) ~f:(fun acc (coordinate, element_set) -> 
       (match Map.find acc coordinate with

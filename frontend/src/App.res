@@ -8,20 +8,9 @@ let defaultOptions: GameConfigForm.game_params = {
   s2: 3,
 }
 
-type coordinate = { x : int, y : int }
-type obstacle = {
-  coordinate: coordinate,
-  cell_types: array<string>
-}
-type game_state = {
-  obstacles: array<obstacle>,
-  is_dead: bool,
-  player_position: coordinate
-}
+let defaultPosition: Grid.coordinate = { x: -1, y: -1 }
 
-let defaultPosition = { x: -1, y: -1 }
-
-let defaultGameState = {
+let defaultGameState: Grid.game_state = {
   obstacles: [],
   is_dead: true,
   player_position: defaultPosition
@@ -47,7 +36,7 @@ let decodeCoordinateFromJson = (coordinate : Js.Json.t) => {
       let xJson = Dict.getUnsafe(v, "x")
       let yJson = Dict.getUnsafe(v, "y")
       {
-        x: decodeIntFromJson(xJson),
+        Grid.x: decodeIntFromJson(xJson),
         y: decodeIntFromJson(yJson)
       }
     }
@@ -63,7 +52,7 @@ let decodeObstacleObject = (obstacleJson: Js.Json.t) => {
       |> decodeArrayFromJson
       |> (array) => Js.Array.map(cellType => Js.Json.decodeString(cellType) |> stringOption => Option.getExn(stringOption), array);
       ({
-        coordinate,
+        Grid.coordinate,
         cell_types
       })
     }
@@ -81,7 +70,7 @@ let decodeBooleanFromJson = (boolean: Js.Json.t) => {
   }
 }
 
-let decodeDict = (dict : dict<Js.Json.t>) => {
+let decodeDict = (dict : dict<Js.Json.t>): Grid.game_state => {
   let is_dead = Js.Dict.unsafeGet(dict, "is_dead") |> decodeBooleanFromJson
   let player_position = Js.Dict.unsafeGet(dict, "player_position") |> decodeCoordinateFromJson
   let obstacles = Js.Dict.unsafeGet(dict, "obstacles") |> decodeArrayFromJson |> array => Js.Array.map(json => decodeObstacleObject(json), array)
@@ -104,12 +93,12 @@ let make = () => {
   let (fireParams, setFireParams) = useState(_ => defaultOptions)
   let (iceParams, setIceParams) = useState(_ => defaultOptions)
   let (waterParams, setWaterParams) = useState(_ => defaultOptions)
-  let (initialGameState, setInitialGameState) = useState(_ => defaultGameState)
+  let (gameState, setGameState) = useState(_ => defaultGameState)
 
-  let should_show_game = initialGameState.obstacles->Array.length > 0
+  let isGameReady = gameState.obstacles->Array.length > 0
 
-  let grid = if should_show_game {
-    <Grid />
+  let grid = if isGameReady {
+    <Grid gameState={gameState} />
   } else {
     <Placeholder />
   }
@@ -122,8 +111,8 @@ let make = () => {
           "fire": fireParams,
           "ice": iceParams,
           "water": waterParams,
-          "width": 20,
-          "height": 20
+          "width": 15,
+          "height": 15
         }->stringifyAny->Belt.Option.getExn->Body.string,
         headers: Headers.fromObject({
           "Content-Type": "application/json"
@@ -132,7 +121,7 @@ let make = () => {
       })
       let payload = await Response.json(response)
       let decoded = decodeResponseBody(payload)
-      setInitialGameState(_ => decoded)
+      setGameState(_ => decoded)
       Js.log(decoded)
     }
     fetchCall()

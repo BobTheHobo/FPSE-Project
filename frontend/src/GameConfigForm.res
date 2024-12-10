@@ -1,6 +1,3 @@
-open React
-open Js.Json
-
 type game_params = {
   b: int,
   s1: int,

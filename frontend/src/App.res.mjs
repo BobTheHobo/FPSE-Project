@@ -124,9 +124,12 @@ function App(props) {
   var match$3 = React.useState(function () {
         return defaultGameState;
       });
-  var setInitialGameState = match$3[1];
-  var should_show_game = match$3[0].obstacles.length > 0;
-  var grid = should_show_game ? JsxRuntime.jsx(Grid.make, {}) : JsxRuntime.jsx(Placeholder.make, {});
+  var setGameState = match$3[1];
+  var gameState = match$3[0];
+  var isGameReady = gameState.obstacles.length > 0;
+  var grid = isGameReady ? JsxRuntime.jsx(Grid.make, {
+          gameState: gameState
+        }) : JsxRuntime.jsx(Placeholder.make, {});
   var startGame = function () {
     var fetchCall = async function () {
       var response = await fetch("http://localhost:8080/game/new", {
@@ -135,8 +138,8 @@ function App(props) {
                           fire: fireParams,
                           ice: iceParams,
                           water: waterParams,
-                          width: 20,
-                          height: 20
+                          width: 15,
+                          height: 15
                         }))),
             headers: Caml_option.some(new Headers({
                       "Content-Type": "application/json"
@@ -145,7 +148,7 @@ function App(props) {
           });
       var payload = await response.json();
       var decoded = decodeResponseBody(payload);
-      setInitialGameState(function (param) {
+      setGameState(function (param) {
             return decoded;
           });
       console.log(decoded);

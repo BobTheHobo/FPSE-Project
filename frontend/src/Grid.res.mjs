@@ -4,6 +4,7 @@ import * as React from "react";
 import * as Js_dict from "rescript/lib/es6/js_dict.js";
 import * as Js_json from "rescript/lib/es6/js_json.js";
 import * as Js_math from "rescript/lib/es6/js_math.js";
+import * as Js_array from "rescript/lib/es6/js_array.js";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
@@ -75,34 +76,38 @@ function decodeCellTypes(cellTypes) {
   }
 }
 
+function decodeObstacle(obstacle, cellType) {
+  var obj = Js_json.decodeObject(obstacle);
+  if (obj === undefined) {
+    return [
+            -1,
+            -1
+          ];
+  }
+  var coordinate = obj["coordinate"];
+  var match = decodeCoordinate(coordinate);
+  var cellTypes = obj["cell_types"];
+  var foundIndex = decodeCellTypes(cellTypes).findIndex(function (cell) {
+        return cell === cellType;
+      });
+  if (foundIndex > -1) {
+    return [
+            match.x,
+            match.y
+          ];
+  } else {
+    return [
+            -1,
+            -1
+          ];
+  }
+}
+
 function obstaclesToTuples(obstacles, cellType) {
   var array = Js_json.decodeArray(obstacles);
   if (array !== undefined) {
     return Belt_Array.map(array, (function (a) {
-                    var obj = Js_json.decodeObject(a);
-                    if (obj === undefined) {
-                      return [
-                              -1,
-                              -1
-                            ];
-                    }
-                    var coordinate = obj["coordinate"];
-                    var match = decodeCoordinate(coordinate);
-                    var cellTypes = obj["cell_types"];
-                    var foundIndex = decodeCellTypes(cellTypes).findIndex(function (cell) {
-                          return cell === cellType;
-                        });
-                    if (foundIndex > -1) {
-                      return [
-                              match.x,
-                              match.y
-                            ];
-                    } else {
-                      return [
-                              -1,
-                              -1
-                            ];
-                    }
+                    return decodeObstacle(a, cellType);
                   })).filter(function (param) {
                 if (param[0] !== -1) {
                   return param[1] !== -1;
@@ -115,6 +120,24 @@ function obstaclesToTuples(obstacles, cellType) {
   }
 }
 
+function coordinateToTuple(param) {
+  return [
+          param.x,
+          param.y
+        ];
+}
+
+function obstacleTuplesOfType(obstacles, cellType) {
+  var filtered = Js_array.filter((function (obstacle) {
+          return Js_array.every((function (ct) {
+                        return cellType === ct;
+                      }), obstacle.cell_types);
+        }), obstacles);
+  return Js_array.map((function (obstacle) {
+                return coordinateToTuple(obstacle.coordinate);
+              }), filtered);
+}
+
 function tupleToPosition(param) {
   return {
           x: param[0],
@@ -123,6 +146,10 @@ function tupleToPosition(param) {
 }
 
 function Grid(props) {
+  var gameState = props.gameState;
+  var firePositions = obstacleTuplesOfType(gameState.obstacles, "Fire");
+  var icePositions = obstacleTuplesOfType(gameState.obstacles, "Ice");
+  var waterPositions = obstacleTuplesOfType(gameState.obstacles, "Water");
   var match = React.useState(function () {
         return [
                 0,
@@ -299,13 +326,13 @@ function Grid(props) {
         }), []);
   Belt_Array.setExn(Belt_Array.getExn(grid, maxX), maxY, 1);
   Belt_Array.setExn(Belt_Array.getExn(grid, position[0]), position[1], 2);
-  Belt_Array.forEach(match$1[0], (function (pos) {
+  Belt_Array.forEach(firePositions, (function (pos) {
           Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 3);
         }));
-  Belt_Array.forEach(match$2[0], (function (pos) {
+  Belt_Array.forEach(icePositions, (function (pos) {
           Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 4);
         }));
-  Belt_Array.forEach(match$3[0], (function (pos) {
+  Belt_Array.forEach(waterPositions, (function (pos) {
           Belt_Array.setExn(Belt_Array.getExn(grid, pos[0]), pos[1], 5);
         }));
   return JsxRuntime.jsx("div", {
@@ -326,6 +353,16 @@ function Grid(props) {
 var make = Grid;
 
 export {
+  getColorClass ,
+  encode_request_body ,
+  decode_response_body ,
+  decodeCoordinate ,
+  decodeCellTypes ,
+  decodeObstacle ,
+  obstaclesToTuples ,
+  coordinateToTuple ,
+  obstacleTuplesOfType ,
+  tupleToPosition ,
   make ,
 }
 /* react Not a pure module */

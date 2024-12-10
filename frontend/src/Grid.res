@@ -3,6 +3,17 @@ open React
 open Belt.Array
 open Js.Json
 
+type coordinate = { x : int, y : int }
+type obstacle = {
+  coordinate: coordinate,
+  cell_types: array<string>
+}
+type game_state = {
+  obstacles: array<obstacle>,
+  is_dead: bool,
+  player_position: coordinate
+}
+
 
 @val external addEventListener: (string, ReactEvent.Keyboard.t => unit) => unit = "document.addEventListener"
 @val external removeEventListener: (string, ReactEvent.Keyboard.t => unit) => unit = "document.removeEventListener"
@@ -19,12 +30,7 @@ let getColorClass = (state: int) => {
   }
 }
 
-type position = {
-  x : int,
-  y : int
-}
-
-let encode_request_body = (player_position: position) => 
+let encode_request_body = (player_position: coordinate) => 
 {
   "player_position": player_position
 }->stringifyAny->Belt.Option.getExn->Body.string
@@ -67,11 +73,20 @@ let obstaclesToTuples = (obstacles, cellType) => switch decodeArray(obstacles) {
   | None => []
 }
 
-let tupleToPosition = ((x, y): (int, int)) : position => { x, y }
+let coordinateToTuple = ({ x, y }: coordinate) => (x, y)
+
+let obstacleTuplesOfType = (obstacles: array<obstacle>, cellType: string) => 
+  Js.Array.filter(obstacle => Js.Array.every(ct => cellType === ct, obstacle.cell_types), obstacles)
+  |> filtered => Js.Array.map(obstacle => coordinateToTuple(obstacle.coordinate), filtered)
+
+let tupleToPosition = ((x, y): (int, int)) : coordinate => { x, y }
 
 
 @react.component
-let make = () => {
+let make = (~gameState: game_state) => {
+  let firePositions = obstacleTuplesOfType(gameState.obstacles, "Fire")
+  let icePositions = obstacleTuplesOfType(gameState.obstacles, "Ice")
+  let waterPositions = obstacleTuplesOfType(gameState.obstacles, "Water")
   let (position, setPosition) = useState(() => (0, 0))
   let (fire, setFire) = useState(() => [])
   let (ice, setIce) = useState(() => [])
@@ -182,13 +197,13 @@ let make = () => {
   let (x, y) = position
   grid->getExn(maxX)->setExn(maxY, 1)
   grid->getExn(x)->setExn(y, 2)
-  fire->forEach(pos => {
+  firePositions->forEach(pos => {
         let (x, y) = pos
         grid->getExn(x)->setExn(y, 3)})
-  ice->forEach(pos => {
+  icePositions->forEach(pos => {
         let (x, y) = pos
         grid->getExn(x)->setExn(y, 4)})
-  water->forEach(pos => {
+  waterPositions->forEach(pos => {
     let (x, y) = pos
     grid->getExn(x)->setExn(y, 5)
   })
