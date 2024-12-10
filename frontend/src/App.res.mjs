@@ -2,9 +2,13 @@
 
 import * as Grid from "./Grid.res.mjs";
 import * as React from "react";
+import * as Js_json from "rescript/lib/es6/js_json.js";
+import * as Js_math from "rescript/lib/es6/js_math.js";
+import * as Js_array from "rescript/lib/es6/js_array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as Placeholder from "./Placeholder.res.mjs";
+import * as Core__Option from "@rescript/core/src/Core__Option.res.mjs";
 import * as GameConfigForm from "./GameConfigForm.res.mjs";
 import * as JsxRuntime from "react/jsx-runtime";
 
@@ -13,6 +17,96 @@ var defaultOptions = {
   s1: 2,
   s2: 3
 };
+
+var defaultPosition = {
+  x: -1,
+  y: -1
+};
+
+var defaultGameState_obstacles = [];
+
+var defaultGameState = {
+  obstacles: defaultGameState_obstacles,
+  is_dead: true,
+  player_position: defaultPosition
+};
+
+function decodeArrayFromJson(array) {
+  var v = Js_json.decodeArray(array);
+  if (v !== undefined) {
+    return v;
+  } else {
+    return [];
+  }
+}
+
+function decodeIntFromJson(json) {
+  var v = Js_json.decodeNumber(json);
+  if (v !== undefined) {
+    return Js_math.floor_int(v);
+  } else {
+    return -1;
+  }
+}
+
+function decodeCoordinateFromJson(coordinate) {
+  var v = Js_json.decodeObject(coordinate);
+  if (v === undefined) {
+    return defaultPosition;
+  }
+  var xJson = v["x"];
+  var yJson = v["y"];
+  return {
+          x: decodeIntFromJson(xJson),
+          y: decodeIntFromJson(yJson)
+        };
+}
+
+function decodeBooleanFromJson($$boolean) {
+  var v = Js_json.decodeBoolean($$boolean);
+  if (v !== undefined) {
+    return v;
+  } else {
+    return false;
+  }
+}
+
+function decodeResponseBody(payload) {
+  var dict = Js_json.decodeObject(payload);
+  if (dict !== undefined) {
+    var is_dead = decodeBooleanFromJson(dict["is_dead"]);
+    var player_position = decodeCoordinateFromJson(dict["player_position"]);
+    var obstacles = (function (array) {
+          return Js_array.map((function (json) {
+                        var dict = Js_json.decodeObject(json);
+                        if (dict === undefined) {
+                          return {
+                                  coordinate: defaultPosition,
+                                  cell_types: []
+                                };
+                        }
+                        var coordinate = decodeCoordinateFromJson(dict["coordinate"]);
+                        var cell_types = (function (array) {
+                              return Js_array.map((function (cellType) {
+                                            var stringOption = Js_json.decodeString(cellType);
+                                            return Core__Option.getExn(stringOption, undefined);
+                                          }), array);
+                            })(decodeArrayFromJson(dict["cell_types"]));
+                        return {
+                                coordinate: coordinate,
+                                cell_types: cell_types
+                              };
+                      }), array);
+        })(decodeArrayFromJson(dict["obstacles"]));
+    return {
+            obstacles: obstacles,
+            is_dead: is_dead,
+            player_position: player_position
+          };
+  } else {
+    return defaultGameState;
+  }
+}
 
 function App(props) {
   var match = React.useState(function () {
@@ -28,9 +122,11 @@ function App(props) {
       });
   var waterParams = match$2[0];
   var match$3 = React.useState(function () {
-        return false;
+        return defaultGameState;
       });
-  var grid = match$3[0] ? JsxRuntime.jsx(Grid.make, {}) : JsxRuntime.jsx(Placeholder.make, {});
+  var setInitialGameState = match$3[1];
+  var should_show_game = match$3[0].obstacles.length > 0;
+  var grid = should_show_game ? JsxRuntime.jsx(Grid.make, {}) : JsxRuntime.jsx(Placeholder.make, {});
   var startGame = function () {
     var fetchCall = async function () {
       var response = await fetch("http://localhost:8080/game/new", {
@@ -48,7 +144,11 @@ function App(props) {
             credentials: "include"
           });
       var payload = await response.json();
-      console.log(payload);
+      var decoded = decodeResponseBody(payload);
+      setInitialGameState(function (param) {
+            return decoded;
+          });
+      console.log(decoded);
     };
     fetchCall();
   };

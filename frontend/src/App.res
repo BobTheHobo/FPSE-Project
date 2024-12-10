@@ -8,29 +8,107 @@ let defaultOptions: GameConfigForm.game_params = {
   s2: 3,
 }
 
-// let cookieExists = (name: string): bool => {
-//   let cookies = Dom.document->Dom.Document["cookie"]
-//   switch cookies {
-//   | None => false
-//   | Some(cookieString) =>
-//     cookieString
-//     ->Js.String.split(";")
-//     ->Array.exists(cookie => {
-//       cookie
-//       ->Js.String.trim
-//       ->Js.String.startsWith(name ++ "=")
-//     })
-//   }
-// }
+type coordinate = { x : int, y : int }
+type obstacle = {
+  coordinate: coordinate,
+  cell_types: array<string>
+}
+type game_state = {
+  obstacles: array<obstacle>,
+  is_dead: bool,
+  player_position: coordinate
+}
+
+let defaultPosition = { x: -1, y: -1 }
+
+let defaultGameState = {
+  obstacles: [],
+  is_dead: true,
+  player_position: defaultPosition
+}
+
+let decodeArrayFromJson = (array : Js.Json.t) => {
+  switch (decodeArray(array)) {
+    | Some(v) => v
+    | None => []
+  }
+}
+
+let decodeIntFromJson = (json : Js.Json.t) => {
+  switch (decodeNumber(json)) {
+    | Some(v) => Js.Math.floor_int(v)
+    | None => -1
+  }
+}
+
+let decodeCoordinateFromJson = (coordinate : Js.Json.t) => {
+  switch (decodeObject(coordinate)) {
+    | Some(v) => {
+      let xJson = Dict.getUnsafe(v, "x")
+      let yJson = Dict.getUnsafe(v, "y")
+      {
+        x: decodeIntFromJson(xJson),
+        y: decodeIntFromJson(yJson)
+      }
+    }
+    | None => defaultPosition
+  }
+}
+
+let decodeObstacleObject = (obstacleJson: Js.Json.t) => {
+  switch (decodeObject(obstacleJson)) {
+    | Some (dict) => {
+      let coordinate = Dict.getUnsafe(dict, "coordinate") |> decodeCoordinateFromJson
+      let cell_types = Dict.getUnsafe(dict, "cell_types") 
+      |> decodeArrayFromJson
+      |> (array) => Js.Array.map(cellType => Js.Json.decodeString(cellType) |> stringOption => Option.getExn(stringOption), array);
+      ({
+        coordinate,
+        cell_types
+      })
+    }
+    | None => ({
+        coordinate: defaultPosition,
+        cell_types: []
+      })
+  }
+}
+
+let decodeBooleanFromJson = (boolean: Js.Json.t) => {
+  switch (decodeBoolean(boolean)) {
+    | Some(v) => v
+    | None => false
+  }
+}
+
+let decodeDict = (dict : dict<Js.Json.t>) => {
+  let is_dead = Js.Dict.unsafeGet(dict, "is_dead") |> decodeBooleanFromJson
+  let player_position = Js.Dict.unsafeGet(dict, "player_position") |> decodeCoordinateFromJson
+  let obstacles = Js.Dict.unsafeGet(dict, "obstacles") |> decodeArrayFromJson |> array => Js.Array.map(json => decodeObstacleObject(json), array)
+  {
+    is_dead,
+    player_position,
+    obstacles,
+  }
+}
+
+let decodeResponseBody = (payload) => {
+  switch decodeObject(payload) {
+    | Some(dict) => decodeDict(dict)
+    | None => defaultGameState
+  }
+}
 
 @react.component
 let make = () => {
   let (fireParams, setFireParams) = useState(_ => defaultOptions)
   let (iceParams, setIceParams) = useState(_ => defaultOptions)
   let (waterParams, setWaterParams) = useState(_ => defaultOptions)
-  let (hasGameId, setHasGameId) = useState(_ => false)
+  let (initialGameState, setInitialGameState) = useState(_ => defaultGameState)
 
-  let grid = if hasGameId {
+  let should_show_game = initialGameState.obstacles->Array.length > 0
+
+  let grid = if should_show_game {
     <Grid />
   } else {
     <Placeholder />
@@ -53,7 +131,9 @@ let make = () => {
         credentials: #"include"
       })
       let payload = await Response.json(response)
-      Js.log(payload)
+      let decoded = decodeResponseBody(payload)
+      setInitialGameState(_ => decoded)
+      Js.log(decoded)
     }
     fetchCall()
     |> ignore
