@@ -100,17 +100,18 @@ module type CELL_TYPE = sig
   (** [handle_collisions tset] is [Some t] if you want to encode an interaction between two overlapping cell types. Otherwise it is [None]*)
 end
 
-module type MAP_GRID = functor (Cell_type : CELL_TYPE) -> sig
-  module CMap : module type of Map.Make(Coordinate)
-  type t = Cell_type.TSet.t CMap.t [@@deriving sexp]
+module type MAP_GRID = sig
+  module CMap : Map.S with type Key.t = Coordinate.t
+
+  type t [@@deriving sexp]
   val empty : t
   val to_string : t -> string
   val coordinate_set : t -> Coordinate.CSet.t
   val handle_collisions : t -> t
-  val next : t -> width : int -> height : int -> t
+  val next : t -> width:int -> height:int -> t
 end
 
-module Make : MAP_GRID = functor (CellType : CELL_TYPE)-> struct
+module Make = functor (CellType : CELL_TYPE) -> struct
   module CMap = Map.Make (Coordinate)
 
   type t = CellType.TSet.t CMap.t [@@deriving sexp]

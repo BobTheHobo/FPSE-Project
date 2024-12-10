@@ -93,17 +93,11 @@ let make = (~gameState: game_state, ~onPlayerMove) => {
   let gridSize = 15
   let maxX = gridSize - 1
   let maxY = gridSize - 1
-
-  Js.log2("Fire", firePositions)
-  Js.log2("Ice", icePositions)
-  Js.log2("Water", waterPositions)
-
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
 
   let onKeyDown = evt => {
     let key = ReactEvent.Keyboard.key(evt)
 
-    Js.log(position)
     switch key {
     | "ArrowLeft" =>
       // Js.log("Move left")
@@ -158,8 +152,10 @@ let make = (~gameState: game_state, ~onPlayerMove) => {
   }
 
   React.useEffect(() => {
-    let encoded = tupleToCoordinate(position)
-    onPlayerMove(encoded)
+    if (isValidMove) {
+      let encoded = tupleToCoordinate(position)
+      onPlayerMove(encoded)
+    }
     None
   }, [position])
 

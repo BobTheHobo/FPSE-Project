@@ -160,17 +160,14 @@ function Grid(props) {
         return true;
       });
   var setIsValidMove = match$1[1];
+  var isValidMove = match$1[0];
   var maxX = 14;
   var maxY = 14;
-  console.log("Fire", firePositions);
-  console.log("Ice", icePositions);
-  console.log("Water", waterPositions);
   var grid = Belt_Array.map(Belt_Array.make(15, undefined), (function () {
           return Belt_Array.make(15, 0);
         }));
   var onKeyDown = function (evt) {
     var key = evt.key;
-    console.log(position);
     switch (key) {
       case "ArrowDown" :
           setPosition(function (param) {
@@ -273,8 +270,11 @@ function Grid(props) {
     }
   };
   React.useEffect((function () {
-          var encoded = tupleToCoordinate(position);
-          onPlayerMove(encoded);
+          if (isValidMove) {
+            var encoded = tupleToCoordinate(position);
+            onPlayerMove(encoded);
+          }
+          
         }), [position]);
   React.useEffect((function () {
           document.addEventListener("keyup", onKeyDown);
