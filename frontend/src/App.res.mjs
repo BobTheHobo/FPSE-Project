@@ -76,7 +76,7 @@ function App(props) {
                       className: "col-span-5 flex justify-center mt-16"
                     })
               ],
-              className: "bg-gray-900 grid grid-cols-7"
+              className: "bg-gray-900 grid grid-cols-7 min-h-svh"
             });
 }
 

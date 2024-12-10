@@ -36,7 +36,7 @@ let make = () => {
     <Placeholder />
   }
 
-  <main className="bg-gray-900 grid grid-cols-7">
+  <main className="bg-gray-900 grid grid-cols-7 min-h-svh">
     <div className="col-span-2 border-r border-gray-400 p-2">
       <div className="flex flex-col gap-1 border-b border-gray-400 px-2">
         <h1 className="text-white text-xl"> {"Can you beat the Game of Life?"->React.string} </h1>
