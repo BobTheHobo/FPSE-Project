@@ -51,15 +51,18 @@ function App(props) {
                               children: [
                                 JsxRuntime.jsx(GameConfigForm.make, {
                                       value: match[0],
-                                      onValueChange: match[1]
+                                      onValueChange: match[1],
+                                      cellType: "Fire"
                                     }),
                                 JsxRuntime.jsx(GameConfigForm.make, {
                                       value: match$1[0],
-                                      onValueChange: match$1[1]
+                                      onValueChange: match$1[1],
+                                      cellType: "Ice"
                                     }),
                                 JsxRuntime.jsx(GameConfigForm.make, {
                                       value: match$2[0],
-                                      onValueChange: match$2[1]
+                                      onValueChange: match$2[1],
+                                      cellType: "Water"
                                     }),
                                 JsxRuntime.jsx("button", {
                                       children: "Begin game",

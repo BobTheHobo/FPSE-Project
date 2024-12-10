@@ -44,9 +44,9 @@ let make = () => {
         <h3 className="text-white"> {"Computer: 0"->React.string} </h3>
       </div>
       <div className="p-4">
-        <GameConfigForm value={fireParams} onValueChange={setFireParams} />
-        <GameConfigForm value={iceParams} onValueChange={setIceParams} />
-        <GameConfigForm value={waterParams} onValueChange={setWaterParams} />
+        <GameConfigForm value={fireParams} onValueChange={setFireParams} cellType="Fire"/>
+        <GameConfigForm value={iceParams} onValueChange={setIceParams} cellType="Ice"/>
+        <GameConfigForm value={waterParams} onValueChange={setWaterParams} cellType="Water"/>
         <button className="mt-4 border border-gray-600 rounded-md h-12 px-4 text-white bg-blue-700">
           {"Begin game"->React.string}
         </button>

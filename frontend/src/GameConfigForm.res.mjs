@@ -10,14 +10,14 @@ function GameConfigForm(props) {
               children: JsxRuntime.jsxs("div", {
                     children: [
                       JsxRuntime.jsx("h1", {
-                            children: "Set Fire cell params",
-                            className: "text-lg"
+                            children: "Set " + props.cellType + " params",
+                            className: "text-lg text-white"
                           }),
                       JsxRuntime.jsxs("div", {
                             children: [
                               JsxRuntime.jsx("p", {
                                     children: "Spawn neighbor count",
-                                    className: "text-sm"
+                                    className: "text-sm text-white"
                                   }),
                               JsxRuntime.jsx("input", {
                                     max: "25",
@@ -46,7 +46,7 @@ function GameConfigForm(props) {
                             children: [
                               JsxRuntime.jsx("p", {
                                     children: "Minimum survival count",
-                                    className: "text-sm"
+                                    className: "text-sm text-white"
                                   }),
                               JsxRuntime.jsx("input", {
                                     max: "25",
@@ -75,7 +75,7 @@ function GameConfigForm(props) {
                             children: [
                               JsxRuntime.jsx("p", {
                                     children: "Maximum survival count",
-                                    className: "text-sm"
+                                    className: "text-sm text-white"
                                   }),
                               JsxRuntime.jsx("input", {
                                     max: "25",
