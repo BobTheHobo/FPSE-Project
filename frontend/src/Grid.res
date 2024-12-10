@@ -79,50 +79,26 @@ let obstacleTuplesOfType = (obstacles: array<obstacle>, cellType: string) =>
   Js.Array.filter(obstacle => Js.Array.every(ct => cellType === ct, obstacle.cell_types), obstacles)
   |> filtered => Js.Array.map(obstacle => coordinateToTuple(obstacle.coordinate), filtered)
 
-let tupleToPosition = ((x, y): (int, int)) : coordinate => { x, y }
+let tupleToCoordinate = ((x, y): (int, int)) : coordinate => { x, y }
 
 
 @react.component
-let make = (~gameState: game_state) => {
+let make = (~gameState: game_state, ~onPlayerMove) => {
   let firePositions = obstacleTuplesOfType(gameState.obstacles, "Fire")
   let icePositions = obstacleTuplesOfType(gameState.obstacles, "Ice")
   let waterPositions = obstacleTuplesOfType(gameState.obstacles, "Water")
-  let (position, setPosition) = useState(() => (0, 0))
-  let (fire, setFire) = useState(() => [])
-  let (ice, setIce) = useState(() => [])
-  let (water, setWater) = useState(() => [])
+  let playerPosition = coordinateToTuple(gameState.player_position)
+  let (position, setPosition) = useState(() => playerPosition)
   let (isValidMove, setIsValidMove) = useState(() => true)
   let gridSize = 15
   let maxX = gridSize - 1
   let maxY = gridSize - 1
 
+  Js.log2("Fire", firePositions)
+  Js.log2("Ice", icePositions)
+  Js.log2("Water", waterPositions)
+
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
-  
-  let fetchObstacles = () => {
-    if (isValidMove) {
-      let gameCall = async () => {
-        let response = await fetch("http://localhost:8080/game", {
-          method: #POST,
-          body: encode_request_body(tupleToPosition(position)),
-          headers: Headers.fromObject({
-            "Content-Type": "application/json"
-          }),
-          credentials: #"include"
-        });
-        let payload = await Response.json(response);
-        let decoded = decode_response_body(payload);
-        let obstaclesRaw = Js.Dict.unsafeGet(decoded, "obstacles");
-        let fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
-        let iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
-        let waterTuples = obstaclesToTuples(obstaclesRaw, "Water");
-        setFire(_ => fireTuples);
-        setIce(_ => iceTuples);
-        setWater(_ => waterTuples)
-      }
-      gameCall()
-      |> ignore
-    }
-  }
 
   let onKeyDown = evt => {
     let key = ReactEvent.Keyboard.key(evt)
@@ -182,7 +158,8 @@ let make = (~gameState: game_state) => {
   }
 
   React.useEffect(() => {
-    fetchObstacles()
+    let encoded = tupleToCoordinate(position)
+    onPlayerMove(encoded)
     None
   }, [position])
 

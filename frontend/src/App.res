@@ -88,6 +88,8 @@ let decodeResponseBody = (payload) => {
   }
 }
 
+type request_body = { player_position: Grid.coordinate }
+
 @react.component
 let make = () => {
   let (fireParams, setFireParams) = useState(_ => defaultOptions)
@@ -97,10 +99,23 @@ let make = () => {
 
   let isGameReady = gameState.obstacles->Array.length > 0
 
-  let grid = if isGameReady {
-    <Grid gameState={gameState} />
-  } else {
-    <Placeholder />
+  let onPlayerMove = (playerPosition: Grid.coordinate) => {
+    let fetchCall = async () => {
+      let response = await fetch("http://localhost:8080/game", {
+        method: #POST,
+        body: {
+          player_position: playerPosition 
+        }->stringifyAny->Option.getExn->Body.string,
+        headers: Headers.fromObject({
+          "Content-Type": "application/json"
+        }),
+        credentials: #"include"
+      })
+      let payload = await Response.json(response)
+      let decoded = decodeResponseBody(payload)
+      setGameState(_ => decoded)
+    }
+    fetchCall() |> ignore
   }
 
   let startGame = () => {
@@ -127,6 +142,13 @@ let make = () => {
     fetchCall()
     |> ignore
   }
+
+  let grid = if isGameReady {
+    <Grid gameState={gameState} onPlayerMove={onPlayerMove} />
+  } else {
+    <Placeholder />
+  }
+
 
   <main className="bg-gray-900 grid grid-cols-7 min-h-svh">
     <div className="col-span-2 border-r border-gray-400 p-2">

@@ -211,6 +211,9 @@ module Supervisor = struct
       player_position = next_position;
       obstacles = obstacles
     }
+    
+  let set_game_state (id : string) (new_state : StateTbl.t) =
+    StateTbl.set ~key:id new_state
 end
 
 (*

@@ -127,9 +127,26 @@ function App(props) {
   var setGameState = match$3[1];
   var gameState = match$3[0];
   var isGameReady = gameState.obstacles.length > 0;
-  var grid = isGameReady ? JsxRuntime.jsx(Grid.make, {
-          gameState: gameState
-        }) : JsxRuntime.jsx(Placeholder.make, {});
+  var onPlayerMove = function (playerPosition) {
+    var fetchCall = async function () {
+      var response = await fetch("http://localhost:8080/game", {
+            method: "POST",
+            body: Caml_option.some(Core__Option.getExn(JSON.stringify({
+                          player_position: playerPosition
+                        }), undefined)),
+            headers: Caml_option.some(new Headers({
+                      "Content-Type": "application/json"
+                    })),
+            credentials: "include"
+          });
+      var payload = await response.json();
+      var decoded = decodeResponseBody(payload);
+      return setGameState(function (param) {
+                  return decoded;
+                });
+    };
+    fetchCall();
+  };
   var startGame = function () {
     var fetchCall = async function () {
       var response = await fetch("http://localhost:8080/game/new", {
@@ -155,6 +172,10 @@ function App(props) {
     };
     fetchCall();
   };
+  var grid = isGameReady ? JsxRuntime.jsx(Grid.make, {
+          gameState: gameState,
+          onPlayerMove: onPlayerMove
+        }) : JsxRuntime.jsx(Placeholder.make, {});
   return JsxRuntime.jsxs("main", {
               children: [
                 JsxRuntime.jsxs("div", {

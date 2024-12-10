@@ -7,7 +7,6 @@ import * as Js_math from "rescript/lib/es6/js_math.js";
 import * as Js_array from "rescript/lib/es6/js_array.js";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
-import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as JsxRuntime from "react/jsx-runtime";
 
 function getColorClass(state) {
@@ -138,7 +137,7 @@ function obstacleTuplesOfType(obstacles, cellType) {
               }), filtered);
 }
 
-function tupleToPosition(param) {
+function tupleToCoordinate(param) {
   return {
           x: param[0],
           y: param[1]
@@ -146,71 +145,29 @@ function tupleToPosition(param) {
 }
 
 function Grid(props) {
+  var onPlayerMove = props.onPlayerMove;
   var gameState = props.gameState;
   var firePositions = obstacleTuplesOfType(gameState.obstacles, "Fire");
   var icePositions = obstacleTuplesOfType(gameState.obstacles, "Ice");
   var waterPositions = obstacleTuplesOfType(gameState.obstacles, "Water");
+  var playerPosition = coordinateToTuple(gameState.player_position);
   var match = React.useState(function () {
-        return [
-                0,
-                0
-              ];
+        return playerPosition;
       });
   var setPosition = match[1];
   var position = match[0];
   var match$1 = React.useState(function () {
-        return [];
-      });
-  var setFire = match$1[1];
-  var match$2 = React.useState(function () {
-        return [];
-      });
-  var setIce = match$2[1];
-  var match$3 = React.useState(function () {
-        return [];
-      });
-  var setWater = match$3[1];
-  var match$4 = React.useState(function () {
         return true;
       });
-  var setIsValidMove = match$4[1];
-  var isValidMove = match$4[0];
+  var setIsValidMove = match$1[1];
   var maxX = 14;
   var maxY = 14;
+  console.log("Fire", firePositions);
+  console.log("Ice", icePositions);
+  console.log("Water", waterPositions);
   var grid = Belt_Array.map(Belt_Array.make(15, undefined), (function () {
           return Belt_Array.make(15, 0);
         }));
-  var fetchObstacles = function () {
-    if (!isValidMove) {
-      return ;
-    }
-    var gameCall = async function () {
-      var response = await fetch("http://localhost:8080/game", {
-            method: "POST",
-            body: Caml_option.some(encode_request_body(tupleToPosition(position))),
-            headers: Caml_option.some(new Headers({
-                      "Content-Type": "application/json"
-                    })),
-            credentials: "include"
-          });
-      var payload = await response.json();
-      var decoded = decode_response_body(payload);
-      var obstaclesRaw = decoded["obstacles"];
-      var fireTuples = obstaclesToTuples(obstaclesRaw, "Fire");
-      var iceTuples = obstaclesToTuples(obstaclesRaw, "Ice");
-      var waterTuples = obstaclesToTuples(obstaclesRaw, "Water");
-      setFire(function (param) {
-            return fireTuples;
-          });
-      setIce(function (param) {
-            return iceTuples;
-          });
-      return setWater(function (param) {
-                  return waterTuples;
-                });
-    };
-    gameCall();
-  };
   var onKeyDown = function (evt) {
     var key = evt.key;
     console.log(position);
@@ -316,7 +273,8 @@ function Grid(props) {
     }
   };
   React.useEffect((function () {
-          fetchObstacles();
+          var encoded = tupleToCoordinate(position);
+          onPlayerMove(encoded);
         }), [position]);
   React.useEffect((function () {
           document.addEventListener("keyup", onKeyDown);
@@ -362,7 +320,7 @@ export {
   obstaclesToTuples ,
   coordinateToTuple ,
   obstacleTuplesOfType ,
-  tupleToPosition ,
+  tupleToCoordinate ,
   make ,
 }
 /* react Not a pure module */

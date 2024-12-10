@@ -29,20 +29,21 @@ let encode_map_grid (map_grid : State.Game_grid.t) =
           `Assoc
             [
               ("coordinate", coordinate_to_assoc key);
-              ("cell_types",
+              ( "cell_types",
                 `List (List.map cell_type_list ~f:(fun ct -> `String ct)) );
             ]
         in
         entry :: acc)
   in
   `List map_as_list
-  
+
 let encode_game_response_body (game_state : State.StateTbl.t) =
-  `Assoc [
-    ("obstacles", encode_map_grid game_state.obstacles);
-    ("player_position", coordinate_to_assoc game_state.player_position);
-    ("is_dead", `Bool game_state.is_dead)
-  ]
+  `Assoc
+    [
+      ("obstacles", encode_map_grid game_state.obstacles);
+      ("player_position", coordinate_to_assoc game_state.player_position);
+      ("is_dead", `Bool game_state.is_dead);
+    ]
   |> Yojson.Safe.to_string
 
 let () =
@@ -77,31 +78,28 @@ let () =
              let game_id = get_game_cookie request in
              let game_state = State.Supervisor.get_game_state game_id in
              let game_state_str = State.StateTbl.to_string game_state in
-             Dream.log "State for id %s: %s" game_id game_state_str;
+             Dream.log "\nState for id %s: %s\n" game_id game_state_str;
              let%lwt body = Dream.body request in
              let { player_position } =
                body |> Yojson.Safe.from_string
                |> game_post_request_body_of_yojson
              in
              let pos = position_to_coordinate player_position in
-             let next_game_state = State.Supervisor.next_game_state game_id pos in
-             let next_game_state_str = State.StateTbl.to_string next_game_state in
-             Dream.log "Computed next state %s" next_game_state_str;
-             encode_game_response_body next_game_state
-             |> fun body ->
-             let response =
-               Dream.response body
-                 ~headers:
-                   [
-                     ("Access-Control-Allow-Origin", "http://localhost:5173");
-                     ("Access-Control-Allow-Credentials", "true");
-                     ("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-                     ("Access-Control-Allow-Headers", "Content-Type");
-                     ("Content-Type", "application/json");
-                   ]
+             let next_game_state =
+               State.Supervisor.next_game_state game_id pos
              in
-             Dream.set_cookie response request ~secure:false "game_id" game_id;
-             Lwt.return response);
+             State.Supervisor.set_game_state game_id next_game_state;
+             Dream.log "\nUpdated state for id %s\nState is: %s\n" game_id (State.StateTbl.to_string next_game_state);
+             encode_game_response_body next_game_state
+             |> Dream.respond
+                  ~headers:
+                    [
+                      ("Access-Control-Allow-Origin", "http://localhost:5173");
+                      ("Access-Control-Allow-Credentials", "true");
+                      ("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                      ("Access-Control-Allow-Headers", "Content-Type");
+                      ("Content-Type", "application/json");
+                    ]);
          Dream.options "/game" (fun _ ->
              Dream.respond
                ~headers:
