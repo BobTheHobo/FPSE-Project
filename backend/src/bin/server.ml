@@ -55,10 +55,12 @@ let () =
   @@ Dream.router
        [
          Dream.get "/" (fun _ -> Dream.html "Welcome to the Game!");
+         Dream.post "/game/new" (fun request ->
+        );
          Dream.post "/game" (fun request ->
              let game_id = get_game_cookie request in
              let game_id_encoded = Int.of_string game_id in
-             Dream.log "%s\n" game_id;
+             Dream.log "Received game_id: %s\n" game_id;
              let%lwt body = Dream.body request in
              let { player_position } =
                body |> Yojson.Safe.from_string

@@ -63,11 +63,50 @@ let fire =
 
 let ice =
   match Cell_type.type_list with _ :: ice :: _ -> ice | _ -> failwith "lol"
+ 
+module ConfigTbl = struct
+  type t = {
+    width : int;
+    height : int;
+  }
+  let tbl : (string, t) Hashtbl.t = Hashtbl.create (module String)
+  let get (key : string) : t option = Hashtbl.find tbl key
+  let delete (key : string) = Hashtbl.remove tbl key
+  let set ~(key : string) (config : t) : unit = Hashtbl.set tbl ~key ~data:config
+end
   
+module StateTbl = struct
+  open Map_grid
+  type t = {
+    obstacles : Game_grid.t;
+    player_position : Coordinate.t;
+  }
+  let tbl : (string, t) Hashtbl.t = Hashtbl.create (module String)
+  
+  let get (key : string) = Hashtbl.find tbl key
+  let delete (key : string) = Hashtbl.remove tbl key
+  let set ~(key : string) (state : t)= Hashtbl.set tbl ~key ~data:state
+end
 
-let fire_set = Cell_type.TSet.of_list [ fire ]
-let ice_set = Cell_type.TSet.of_list [ ice ]
-
+module Pattern = struct
+  let oscillating ({ x; y } : Map_grid.Coordinate.t) : Map_grid.Coordinate.t list = 
+    let open Map_grid.Coordinate.T in
+  [
+    { x; y };
+    { x = x + 2; y };
+    { x = x + 2; y = y - 1 };
+    { x = x + 4; y = y - 2 };
+    { x = x + 4; y = y - 3 };
+    { x = x + 4; y = y - 4 };
+    { x = x + 6; y = y - 3 };
+    { x = x + 6; y = y - 4 };
+    { x = x + 6; y = y - 5 };
+    { x = x + 7; y = y - 5 };
+  ]
+  
+  let to_coordinate_map_alist (coordinates : Map_grid.Coordinate.t list) (k : 'a) = 
+    List.map coordinates ~f:(fun coordinate -> (coordinate, k))
+end
 let get_oscillating_pattern ({ x; y } : Map_grid.Coordinate.t) =
   [
     { Map_grid.Coordinate.T.x; y };
@@ -81,6 +120,75 @@ let get_oscillating_pattern ({ x; y } : Map_grid.Coordinate.t) =
     { x = x + 6; y = y - 5 };
     { x = x + 7; y = y - 5 };
   ]
+
+let fire_set = Cell_type.TSet.of_list [ fire ]
+let ice_set = Cell_type.TSet.of_list [ ice ]
+
+let create_initial_obstacles ~(width : int) ~(height : int) =
+  let fire_pos = get_oscillating_pattern { x = width / 2; y = height / 2 } in
+  let ice_pos = get_oscillating_pattern { x = 4; y = height - 2 } in
+  let mapped_to_fire = List.map fire_pos ~f:(fun c -> (c, fire_set)) in
+  let mapped_to_ice = List.map ice_pos ~f:(fun c -> (c, ice_set)) in
+  Game_grid.CMap.of_alist_exn (mapped_to_fire @ mapped_to_ice)
+
+module Supervisor = struct
+  let max_count : int = 10
+  let game_id_count : int ref = ref 0
+  
+  type grid_params = {
+    b : int;
+    s1 : int;
+    s2 : int;
+  }
+
+  type game_params = {
+    fire : grid_params;
+    ice : grid_params;
+    water : grid_params;
+    width : int;
+    height : int;
+  }
+  
+  let random_start_position ~width ~height =
+    let half_width, half_height = (width / 2), (height / 2) in
+    let open Map_grid.Coordinate.T in
+    let w_offset = Random.int (half_width - 1) in
+    let h_offset = Random.int (half_height - 1) in
+    let op = (match Random.int 2 with
+    | 1 -> (+)
+    | _ -> (-)) in
+    { x = (op half_width w_offset); y = (op half_height h_offset)}
+
+  let increment () =
+    let curr = !game_id_count in
+    game_id_count := (curr + 1); 
+    curr
+  let has_available_slot () : bool = !game_id_count < 10
+  
+  let string_of_curr_id () = 
+    !game_id_count
+    |> Int.to_string
+    
+  let initial_obstacles ~width ~height =
+    [fire_set; ice_set]
+    |> List.fold ~init:[] ~f:(fun acc singleton ->
+      let start_pos = random_start_position ~width ~height in
+      Pattern.oscillating start_pos
+      |> fun coordinates -> Pattern.to_coordinate_map_alist coordinates singleton
+      |> fun entries -> acc @ entries)
+    |> List.fold ~init:(Game_grid.empty) ~f:(fun acc (coordinate, element_set) -> 
+      (match Map.find acc coordinate with
+      | Some set -> Set.union set element_set
+      | None -> element_set)
+      |> fun data -> Map.set acc ~key:coordinate ~data)
+    
+  let create_game ({ width; height; _ }: game_params) =
+    if (has_available_slot ()) then
+      let obstacles = initial_obstacles ~width ~height in
+      let curr_id = string_of_curr_id() in
+      ConfigTbl.set ~key:(curr_id) { width; height };
+      StateTbl.set ~key:(curr_id) { obstacles; player_position = { x = 0; y = 0 } };
+end
 
 let max_game_count = 10
 
@@ -107,13 +215,6 @@ let position_to_coordinate (pos : position) : Map_grid.Coordinate.t =
 let is_legal_move (last_pos : Map_grid.Coordinate.t)
     (curr_pos : Map_grid.Coordinate.t) =
   abs (last_pos.x - curr_pos.x) < 2 && abs (last_pos.y - curr_pos.y) < 2
-
-let create_initial_obstacles ~(width : int) ~(height : int) =
-  let fire_pos = get_oscillating_pattern { x = width / 2; y = height / 2 } in
-  let ice_pos = get_oscillating_pattern { x = 4; y = height - 2 } in
-  let mapped_to_fire = List.map fire_pos ~f:(fun c -> (c, fire_set)) in
-  let mapped_to_ice = List.map ice_pos ~f:(fun c -> (c, ice_set)) in
-  Game_grid.CMap.of_alist_exn (mapped_to_fire @ mapped_to_ice)
 
 let get_game_state_tbl () = game_state_tbl
 
