@@ -29,7 +29,7 @@ let encode_map_grid (map_grid : State.Game_grid.t) =
           `Assoc
             [
               ("coordinate", coordinate_to_assoc key);
-              ( "cell_types",
+              ("cell_types",
                 `List (List.map cell_type_list ~f:(fun ct -> `String ct)) );
             ]
         in
@@ -49,11 +49,12 @@ let encode_response_body (map_grid : State.Game_grid.t)
   in
   Yojson.Safe.to_string json
   
-let encode_new_game_response_body (game_id : string) =
-  `Assoc
-    [
-      ("game_id", `String game_id)
-    ]
+let encode_game_response_body (game_state : State.StateTbl.t) =
+  `Assoc [
+    ("obstacles", encode_map_grid game_state.obstacles);
+    ("player_position", coordinate_to_assoc game_state.player_position);
+    ("is_dead", `Bool game_state.is_dead)
+  ]
   |> Yojson.Safe.to_string
 
 let () =
@@ -69,7 +70,8 @@ let () =
                |> Supervisor.game_params_of_yojson
              in
              let game_id = Supervisor.create_game params in
-             let response_body = encode_new_game_response_body game_id in
+             let game_state = Supervisor.get_game_state game_id in
+             let response_body = encode_game_response_body game_state in
              let response =
                Dream.response response_body
                  ~headers:
