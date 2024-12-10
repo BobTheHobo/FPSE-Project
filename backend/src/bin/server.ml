@@ -3,7 +3,6 @@ open Game
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type params_json = { b : int; s1 : int; s2 : int } [@@deriving yojson]
-
 type position = { x : int; y : int } [@@deriving yojson]
 type game_post_request_body = { player_position : position } [@@deriving yojson]
 
@@ -16,7 +15,7 @@ let get_game_cookie request =
       Dream.log "game id %s\n" game_id;
       game_id
   | None -> Int.to_string (State.next_game_id ())
-  
+
 let coordinate_to_assoc (coordinate : Map_grid.Coordinate.t) =
   `Assoc [ ("x", `Int coordinate.x); ("y", `Int coordinate.y) ]
 
@@ -24,7 +23,7 @@ let encode_map_grid (map_grid : State.Game_grid.t) =
   let map_as_list =
     Map.fold map_grid ~init:[] ~f:(fun ~key ~data acc ->
         let cell_type_list =
-          Set.to_list data |> List.map ~f:(State.Cell_type.to_string)
+          Set.to_list data |> List.map ~f:State.Cell_type.to_string
         in
         let entry =
           `Assoc
@@ -45,10 +44,17 @@ let encode_response_body (map_grid : State.Game_grid.t)
       [
         ("obstacles", encode_map_grid map_grid);
         ("player", coordinate_to_assoc player);
-        ("is_dead", `Bool is_dead)
+        ("is_dead", `Bool is_dead);
       ]
   in
   Yojson.Safe.to_string json
+  
+let encode_new_game_response_body (game_id : string) =
+  `Assoc
+    [
+      ("game_id", `String game_id)
+    ]
+  |> Yojson.Safe.to_string
 
 let () =
   Dream.run @@ Dream.set_secret "secret" @@ Dream.logger
@@ -56,7 +62,27 @@ let () =
        [
          Dream.get "/" (fun _ -> Dream.html "Welcome to the Game!");
          Dream.post "/game/new" (fun request ->
-        );
+             let open State in
+             let%lwt body = Dream.body request in
+             let params =
+               body |> Yojson.Safe.from_string
+               |> Supervisor.game_params_of_yojson
+             in
+             let game_id = Supervisor.create_game params in
+             let response_body = encode_new_game_response_body game_id in
+             let response =
+               Dream.response response_body
+                 ~headers:
+                   [
+                     ("Access-Control-Allow-Origin", "http://localhost:5173");
+                     ("Access-Control-Allow-Credentials", "true");
+                     ("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                     ("Access-Control-Allow-Headers", "Content-Type");
+                     ("Content-Type", "application/json");
+                   ]
+             in
+             Dream.set_cookie response request ~secure:false "game_id" game_id;
+             Lwt.return response);
          Dream.post "/game" (fun request ->
              let game_id = get_game_cookie request in
              let game_id_encoded = Int.of_string game_id in
@@ -70,10 +96,14 @@ let () =
              let game_state =
                match State.get_game_state game_id_encoded with
                | None -> State.new_game_state ~width:15 ~height:15
-               | Some _ -> State.next_game_state player_coordinate game_id_encoded
+               | Some _ ->
+                   State.next_game_state player_coordinate game_id_encoded
              in
-             let is_dead = match Map.find game_state.obstacles player_coordinate with | None -> false | Some _ -> true
-              in
+             let is_dead =
+               match Map.find game_state.obstacles player_coordinate with
+               | None -> false
+               | Some _ -> true
+             in
              let str = State.game_grid_to_string game_state.obstacles in
              Dream.log "obstacles state %s\n" str;
              State.set_game_state game_id_encoded game_state;
@@ -94,6 +124,15 @@ let () =
              Dream.set_cookie response request ~secure:false "game_id" game_id;
              Lwt.return response);
          Dream.options "/game" (fun _ ->
+             Dream.respond
+               ~headers:
+                 [
+                   ("Access-Control-Allow-Origin", "http://localhost:5173");
+                   ("Access-Control-Allow-Headers", "Content-Type");
+                   ("Access-Control-Allow-Credentials", "true");
+                 ]
+               "");
+         Dream.options "/game/new" (fun _ ->
              Dream.respond
                ~headers:
                  [

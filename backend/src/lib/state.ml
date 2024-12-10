@@ -139,7 +139,7 @@ module Supervisor = struct
     b : int;
     s1 : int;
     s2 : int;
-  }
+  } [@@deriving yojson]
 
   type game_params = {
     fire : grid_params;
@@ -147,7 +147,7 @@ module Supervisor = struct
     water : grid_params;
     width : int;
     height : int;
-  }
+  } [@@deriving yojson]
   
   let random_start_position ~width ~height =
     let half_width, half_height = (width / 2), (height / 2) in
@@ -163,11 +163,13 @@ module Supervisor = struct
     let curr = !game_id_count in
     game_id_count := (curr + 1); 
     curr
+    
+  let string_of_id (id : int) = id |> Int.to_string
   let has_available_slot () : bool = !game_id_count < 10
   
-  let string_of_curr_id () = 
-    !game_id_count
-    |> Int.to_string
+  let get_id_then_incr () =
+    increment ()
+    |> string_of_id
     
   let initial_obstacles ~width ~height =
     [fire_set; ice_set]
@@ -185,9 +187,11 @@ module Supervisor = struct
   let create_game ({ width; height; _ }: game_params) =
     if (has_available_slot ()) then
       let obstacles = initial_obstacles ~width ~height in
-      let curr_id = string_of_curr_id() in
+      let curr_id = get_id_then_incr () in
       ConfigTbl.set ~key:(curr_id) { width; height };
       StateTbl.set ~key:(curr_id) { obstacles; player_position = { x = 0; y = 0 } };
+      curr_id
+    else Int.to_string (-1)
 end
 
 let max_game_count = 10
