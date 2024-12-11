@@ -48,7 +48,7 @@ let update ~(id : string) ~player_position ~is_dead ~obstacles =
       is_dead;
       obstacles;
       height = curr_state.height;
-      width = curr_state.width
+      width = curr_state.width;
     }
   in
   set ~key:id new_state

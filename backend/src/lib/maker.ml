@@ -1,10 +1,17 @@
 open Core
 open Map_grid
 
-type game_params = { fire : Params.t; ice : Params.t; water : Params.t }
+module type S = sig
+  type t =
+    | Fire 
+    | Water 
+    | Ice [@@deriving sexp, compare]
 
+  val to_string : t -> string
+  val on_collision : t -> t -> t option
+end
 module T = struct
-  type t = Fire | Ice | Water [@@deriving sexp, compare]
+  type t = Fire | Water | Ice [@@deriving sexp, compare]
 
   let to_string (t : t) = Sexp.to_string (sexp_of_t t)
   let cell_ls = [ Fire; Ice; Water ]
@@ -17,6 +24,8 @@ module T = struct
       | Ice, Water -> Some Ice
       | _ -> None
 end
+
+type game_params = { fire : Params.t; ice : Params.t; water : Params.t }
 
 let make_params_of_t ({ fire; ice; water } : game_params) =
  fun (t : T.t) -> match t with T.Fire -> fire | Ice -> ice | Water -> water
