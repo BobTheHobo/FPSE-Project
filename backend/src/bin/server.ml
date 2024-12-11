@@ -7,7 +7,7 @@ type position = { x : int; y : int } [@@deriving yojson]
 type game_post_request_body = { player_position : position } [@@deriving yojson]
 
 let position_to_coordinate (pos : position) : Coordinate.t =
-  { Coordinate.T.x = pos.x; y = pos.y }
+  { Coordinate.x = pos.x; y = pos.y }
 
 let get_game_cookie request =
   match Dream.cookie request "game_id" with

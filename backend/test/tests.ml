@@ -40,7 +40,7 @@ end
 
 module M_grid = Map_grid.Make (Cell_type)
 
-let create_coordinate ~x ~y = { Coordinate.T.x; y }
+let create_coordinate ~x ~y = { Coordinate.x; y }
 
 let get_fire =
   match Cell_type.type_list with
@@ -63,8 +63,8 @@ let is_same_type (a : Cell_type.t) (b : Cell_type.t) = Cell_type.compare a b = 0
 let get_water_set = Cell_type.TSet.of_list [ get_water ]
 
 let test_all_dead_from_solitude_example _ =
-  let coordinate_1 = { Coordinate.T.x = 0; y = 0 } in
-  let coordinate_2 = { Coordinate.T.x = 2; y = 2 } in
+  let coordinate_1 = { Coordinate.x = 0; y = 0 } in
+  let coordinate_2 = { Coordinate.x = 2; y = 2 } in
   let fire_cell = List.hd_exn Cell_type.type_list in
   let set = Cell_type.TSet.of_list [ fire_cell ] in
   let m = Map.add_exn M_grid.empty ~key:coordinate_1 ~data:set in

@@ -1,10 +1,6 @@
 open Core
 
-module T : sig
-  type t = { x : int; y : int } [@@deriving sexp, compare]
-end
-
-type t = T.t [@@deriving sexp, compare]
+type t = { x : int; y : int } [@@deriving sexp, compare]
 
 module CoordinateSet : Set.S with type Elt.t = t
 module CoordinateMap : Map.S with type Key.t = t

@@ -20,21 +20,13 @@ module type CELL_TYPE = sig
 end
 
 module type MAP_GRID = sig
-  type 'a t = 'a Coordinate.CoordinateMap.t [@@deriving sexp]
-
-  val empty : 'a t
-  val to_string : 'a t -> string
-  val handle_collisions : 'a t -> 'a t
-  val coordinate_set : 'a t -> Coordinate.CoordinateSet.t
-  val next : 'a t -> width:int -> height:int -> 'a t
-end
-
-module Make (CellType: CELL_TYPE) : sig
-  type t = CellType.TSet.t Coordinate.CoordinateMap.t [@@deriving sexp]
+  type t [@@deriving sexp]
 
   val empty : t
   val to_string : t -> string
-  val coordinate_set : t -> Coordinate.CoordinateSet.t
   val handle_collisions : t -> t
+  val coordinate_set : t -> Coordinate.CoordinateSet.t
   val next : t -> width:int -> height:int -> t
 end
+
+module Make (CellType: CELL_TYPE) : MAP_GRID with type t = CellType.TSet.t Coordinate.CoordinateMap.t
