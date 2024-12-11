@@ -45,7 +45,7 @@ function GameConfigForm(props) {
                       JsxRuntime.jsxs("div", {
                             children: [
                               JsxRuntime.jsx("p", {
-                                    children: "Minimum survival count",
+                                    children: "Survive count 1",
                                     className: "text-sm text-white"
                                   }),
                               JsxRuntime.jsx("input", {
@@ -74,7 +74,7 @@ function GameConfigForm(props) {
                       JsxRuntime.jsxs("div", {
                             children: [
                               JsxRuntime.jsx("p", {
-                                    children: "Maximum survival count",
+                                    children: "Survive count 2",
                                     className: "text-sm text-white"
                                   }),
                               JsxRuntime.jsx("input", {
