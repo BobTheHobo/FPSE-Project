@@ -33,7 +33,7 @@ let encode_map_grid (map_grid : State.base_grid_map) =
   in
   `List map_as_list
 
-let encode_game_response_body (game_state : State.encodeable_game_state) =
+let encode_game_response_body (game_state : Statetbl.encodeable_t) =
   `Assoc
     [
       ("obstacles", encode_map_grid game_state.obstacles);

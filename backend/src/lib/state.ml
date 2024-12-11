@@ -3,57 +3,6 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type base_grid_map = Maker.T.t Coordinate.CoordinateMap.t
 
-type encodeable_game_state = {
-  obstacles : base_grid_map;
-  player_position : Coordinate.t;
-  is_dead : bool;
-}
-
-(* module GameStateTbl = struct
-  type t = {
-    obstacles : base_grid_map;
-    grid_module : (module Map_grid.S with type t = base_grid_map);
-    is_dead : bool;
-    player_position : Coordinate.t;
-    width : int;
-    height : int;
-  }
-
-  let to_string (t : t) =
-    let (module A) = t.grid_module in
-    Printf.sprintf
-      ("{\n" ^^ "  player_position: { x: %d, y: %d },\n" ^^ "  is_dead: %s,\n"
-     ^^ "  obstacles: %s\n" ^^ "}")
-      t.player_position.x t.player_position.y (Bool.to_string t.is_dead)
-      (A.to_string t.obstacles)
-
-  let tbl : (string, t) Hashtbl.t = Hashtbl.create (module String)
-  let get (key : string) : t option = Hashtbl.find tbl key
-  let get_exn (key : string) : t = Hashtbl.find_exn tbl key
-  let delete (key : string) = Hashtbl.remove tbl key
-
-  let string_of_id (id : string) =
-    match get id with
-    | None -> failwith "Can't convert a state that doesn't exist to a string..."
-    | Some v -> to_string v
-
-  let set ~(key : string) (state : t) : unit = Hashtbl.set tbl ~key ~data:state
-
-  let update ~(id : string) ~player_position ~is_dead ~obstacles =
-    let curr_state = get_exn id in
-    let new_state =
-      {
-        grid_module = curr_state.grid_module;
-        height = curr_state.height;
-        width = curr_state.width;
-        player_position;
-        is_dead;
-        obstacles;
-      }
-    in
-    set ~key:id new_state
-end *)
-
 module Pattern = struct
   let oscillating ({ x; y } : Coordinate.t) : Coordinate.t list =
     [
@@ -163,10 +112,12 @@ module Supervisor = struct
     | Some v -> v
     | None -> failwith ("No game with id " ^ id ^ " could be found")
 
-  let get_encodeable_game_state (id : string) : encodeable_game_state =
+  let get_encodeable_game_state (id : string) : Statetbl.encodeable_t =
     let v = get_game_state id in
     {
       obstacles = v.obstacles;
+      height = v.height;
+      width = v.width;
       player_position = v.player_position;
       is_dead = v.is_dead;
     }
@@ -178,7 +129,7 @@ module Supervisor = struct
   let is_legal_move (prev : Coordinate.t) (next : Coordinate.t) =
     abs (prev.x - next.x) <= 1 && abs (prev.y - next.y) <= 1
 
-  let next_game_state (id : string) (next_position : Coordinate.t) =
+  let next_game_state (id : string) (next_position : Coordinate.t) : Statetbl.encodeable_t =
     let {
       Statetbl.obstacles;
       grid_module;
@@ -198,5 +149,5 @@ module Supervisor = struct
       let is_dead = is_player_dead next_position obs_coordinates in
       Statetbl.update ~id ~player_position:next_position
         ~obstacles:next_grid_state ~is_dead;
-      { is_dead; player_position = next_position; obstacles }
+      { is_dead; player_position = next_position; obstacles; height; width; }
 end
