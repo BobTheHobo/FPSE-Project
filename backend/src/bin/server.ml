@@ -19,21 +19,21 @@ let get_game_cookie request =
 let coordinate_to_assoc (coordinate : Coordinate.t) =
   `Assoc [ ("x", `Int coordinate.x); ("y", `Int coordinate.y) ]
 
-let encode_map_grid (map_grid : State.Game_grid.t) =
+let encode_map_grid (map_grid : State.base_grid_map) =
   let map_as_list =
     Map.fold map_grid ~init:[] ~f:(fun ~key ~data acc ->
         let entry =
           `Assoc
             [
               ("coordinate", coordinate_to_assoc key);
-              ( "cell_type", `String (State.CellType.to_string data))
+              ( "cell_type", `String (Maker.T.to_string data))
             ]
         in
         entry :: acc)
   in
   `List map_as_list
 
-let encode_game_response_body (game_state : State.StateTbl.t) =
+let encode_game_response_body (game_state : State.encodeable_game_state) =
   `Assoc
     [
       ("obstacles", encode_map_grid game_state.obstacles);
@@ -54,8 +54,8 @@ let () =
                body |> Yojson.Safe.from_string
                |> Supervisor.game_params_of_yojson
              in
-             let game_id = Supervisor.create_game params in
-             let game_state = Supervisor.get_game_state game_id in
+             let game_id = Supervisor.init_game_state params in
+             let game_state = Supervisor.get_encodeable_game_state game_id in
              let response_body = encode_game_response_body game_state in
              let response =
                Dream.response response_body
@@ -72,21 +72,18 @@ let () =
              Lwt.return response);
          Dream.post "/game" (fun request ->
              let game_id = get_game_cookie request in
-             let game_state = State.Supervisor.get_game_state game_id in
-             let game_state_str = State.StateTbl.to_string game_state in
-             Dream.log "\nState for id %s: %s\n" game_id game_state_str;
+             let curr_state = State.Supervisor.get_game_state game_id in
+             Dream.log "\nCurrent state for id %s\n%s\n" game_id (State.GameStateTbl.to_string curr_state);
              let%lwt body = Dream.body request in
-             let { player_position } =
-               body |> Yojson.Safe.from_string
-               |> game_post_request_body_of_yojson
-             in
-             let pos = position_to_coordinate player_position in
-             let next_game_state =
+             let yojsoned = Yojson.Safe.from_string body in
+             let a = game_post_request_body_of_yojson yojsoned in
+             let pos = position_to_coordinate a.player_position in
+             let encodeable_next_state =
                State.Supervisor.next_game_state game_id pos
              in
-             State.Supervisor.set_game_state game_id next_game_state;
-             Dream.log "\nUpdated state for id %s\nState is: %s\n" game_id (State.StateTbl.to_string next_game_state);
-             encode_game_response_body next_game_state
+             let raw_next_state = State.Supervisor.get_game_state game_id in
+             Dream.log "\nSuccesfully updated state for id %s\n%s\n" game_id (State.GameStateTbl.to_string raw_next_state);
+             encode_game_response_body encodeable_next_state
              |> Dream.respond
                   ~headers:
                     [

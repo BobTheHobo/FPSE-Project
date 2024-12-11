@@ -12,6 +12,7 @@ module CellType : Map_grid.CELL_TYPE = struct
 
   let to_string (t : t) = Sexp.to_string (sexp_of_t t)
   let all_set = CellSet.of_list [ T.Fire; T.Ice; T.Water ]
+  let cell_ls = [ T.Fire; T.Ice; T.Water ]
   let compare = T.compare
 
   let params_of_t (t : t) =
