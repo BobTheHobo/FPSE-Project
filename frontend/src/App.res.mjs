@@ -4,6 +4,7 @@ import * as Grid from "./Grid.res.mjs";
 import * as React from "react";
 import * as Js_json from "rescript/lib/es6/js_json.js";
 import * as Js_math from "rescript/lib/es6/js_math.js";
+import * as Caml_obj from "rescript/lib/es6/caml_obj.js";
 import * as Js_array from "rescript/lib/es6/js_array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
@@ -123,8 +124,19 @@ function App(props) {
       });
   var setGameState = match$3[1];
   var gameState = match$3[0];
+  var match$4 = React.useState(function () {
+        return false;
+      });
+  var setPopupVisible = match$4[1];
+  var match$5 = React.useState(function () {
+        return false;
+      });
+  var setHasWon = match$5[1];
   var isGameReady = gameState.obstacles.length > 0;
   var onPlayerMove = function (playerPosition) {
+    if (gameState.is_dead) {
+      return ;
+    }
     var fetchCall = async function () {
       var response = await fetch("http://localhost:8080/game", {
             method: "POST",
@@ -138,9 +150,29 @@ function App(props) {
           });
       var payload = await response.json();
       var decoded = decodeResponseBody(payload);
-      return setGameState(function (param) {
-                  return decoded;
-                });
+      setGameState(function (param) {
+            return decoded;
+          });
+      if (decoded.is_dead) {
+        setHasWon(function (param) {
+              return false;
+            });
+        setPopupVisible(function (param) {
+              return true;
+            });
+      }
+      if (Caml_obj.equal(playerPosition, {
+              x: 14,
+              y: 14
+            })) {
+        setHasWon(function (param) {
+              return true;
+            });
+        return setPopupVisible(function (param) {
+                    return true;
+                  });
+      }
+      
     };
     fetchCall();
   };
@@ -162,17 +194,54 @@ function App(props) {
           });
       var payload = await response.json();
       var decoded = decodeResponseBody(payload);
-      setGameState(function (param) {
-            return decoded;
-          });
-      console.log(decoded);
+      return setGameState(function (param) {
+                  return decoded;
+                });
     };
     fetchCall();
   };
+  var restartGame = function () {
+    setPopupVisible(function (param) {
+          return false;
+        });
+    setHasWon(function (param) {
+          return false;
+        });
+    setGameState(function (param) {
+          return defaultGameState;
+        });
+    startGame();
+  };
   var grid = isGameReady ? JsxRuntime.jsx(Grid.make, {
           gameState: gameState,
-          onPlayerMove: onPlayerMove
+          onPlayerMove: onPlayerMove,
+          isInteractive: !gameState.is_dead
         }) : JsxRuntime.jsx(Placeholder.make, {});
+  var popupText = match$5[0] ? "You won!" : "You lost.";
+  var popup = match$4[0] ? JsxRuntime.jsx("div", {
+          children: JsxRuntime.jsxs("div", {
+                children: [
+                  JsxRuntime.jsx("h2", {
+                        children: popupText
+                      }),
+                  JsxRuntime.jsx("p", {
+                        children: "Would you like to restart?"
+                      }),
+                  JsxRuntime.jsx("div", {
+                        children: JsxRuntime.jsx("button", {
+                              children: "Restart",
+                              className: "bg-blue-500 text-white px-4 py-2 rounded",
+                              onClick: (function (param) {
+                                  restartGame();
+                                })
+                            }),
+                        className: "flex gap-2 mt-4"
+                      })
+                ],
+                className: "bg-white p-4 rounded shadow-lg"
+              }),
+          className: "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
+        }) : null;
   return JsxRuntime.jsxs("main", {
               children: [
                 JsxRuntime.jsxs("div", {
@@ -212,7 +281,7 @@ function App(props) {
                                       cellType: "Water"
                                     }),
                                 JsxRuntime.jsx("button", {
-                                      children: "Begin game",
+                                      children: "Begin Game",
                                       className: "mt-4 border border-gray-600 rounded-md h-12 px-4 text-white bg-blue-700",
                                       onClick: (function (param) {
                                           startGame();
@@ -224,8 +293,11 @@ function App(props) {
                       ],
                       className: "col-span-2 border-r border-gray-400 p-2"
                     }),
-                JsxRuntime.jsx("div", {
-                      children: grid,
+                JsxRuntime.jsxs("div", {
+                      children: [
+                        grid,
+                        popup
+                      ],
                       className: "col-span-5 flex justify-center mt-16"
                     })
               ],

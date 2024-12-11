@@ -143,6 +143,7 @@ function tupleToCoordinate(param) {
 }
 
 function Grid(props) {
+  var isInteractive = props.isInteractive;
   var onPlayerMove = props.onPlayerMove;
   var gameState = props.gameState;
   var firePositions = obstacleTuplesOfType(gameState.obstacles, "Fire");
@@ -165,6 +166,9 @@ function Grid(props) {
           return Belt_Array.make(15, 0);
         }));
   var onKeyDown = function (evt) {
+    if (!isInteractive) {
+      return ;
+    }
     var key = evt.key;
     switch (key) {
       case "ArrowDown" :
@@ -267,6 +271,14 @@ function Grid(props) {
         return ;
     }
   };
+  React.useEffect((function () {
+          if (isInteractive) {
+            document.addEventListener("keyup", onKeyDown);
+          }
+          return (function () {
+                    document.removeEventListener("keyup", onKeyDown);
+                  });
+        }), [isInteractive]);
   React.useEffect((function () {
           if (isValidMove) {
             var encoded = tupleToCoordinate(position);

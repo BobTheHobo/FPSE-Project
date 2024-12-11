@@ -83,7 +83,7 @@ let tupleToCoordinate = ((x, y): (int, int)) : coordinate => { x, y }
 
 
 @react.component
-let make = (~gameState: game_state, ~onPlayerMove) => {
+let make = (~gameState: game_state, ~onPlayerMove, ~isInteractive: bool) => {
   let firePositions = obstacleTuplesOfType(gameState.obstacles, "Fire")
   let icePositions = obstacleTuplesOfType(gameState.obstacles, "Ice")
   let waterPositions = obstacleTuplesOfType(gameState.obstacles, "Water")
@@ -96,60 +96,72 @@ let make = (~gameState: game_state, ~onPlayerMove) => {
   let grid = make(gridSize, ())->map(() => make(gridSize, 0))
 
   let onKeyDown = evt => {
-    let key = ReactEvent.Keyboard.key(evt)
+    if isInteractive {
+      let key = ReactEvent.Keyboard.key(evt)
 
-    switch key {
-    | "ArrowLeft" =>
-      // Js.log("Move left")
-      setPosition(((x, y)) => {
-        if (y - 1 >= 0) {
-          setIsValidMove(_ => true)
-          (x, Js.Math.max_int(y - 1, 0))
-        } else {
-          setIsValidMove(_ => false)
-          (x, y)
-        }
-      })
-      ReactEvent.Keyboard.preventDefault(evt)
-    | "ArrowRight" =>
-      // Js.log("Move right")
-      setPosition(((x, y)) => {
-        if (y + 1 <= maxY) {
-          setIsValidMove(_ => true)
-          (x, Js.Math.min_int(y + 1, maxY))
-        } else {
-          setIsValidMove(_ => false)
-          (x, y)
-        }
-      })
-      ReactEvent.Keyboard.preventDefault(evt)
-    | "ArrowUp" =>
-      // Js.log("Move up")
-      setPosition(((x, y)) => {
-        if (x - 1 >= 0) {
-          setIsValidMove(_ => true)
-          (Js.Math.max_int(x - 1, 0), y)
-        } else {
-          setIsValidMove(_ => false)
-          (x, y)
-        }
-      })
-      ReactEvent.Keyboard.preventDefault(evt)
-    | "ArrowDown" =>
-      // Js.log("Move Down")
-      setPosition(((x, y)) => {
-        if (x + 1 <= maxX) {
-          setIsValidMove(_ => true)
-          (Js.Math.min_int(x + 1, maxX), y)
-        } else {
-          setIsValidMove(_ => false)
-          (x, y)
-        }
-      })
-      ReactEvent.Keyboard.preventDefault(evt)
-    | _ => ()
+      switch key {
+      | "ArrowLeft" =>
+        // Js.log("Move left")
+        setPosition(((x, y)) => {
+          if (y - 1 >= 0) {
+            setIsValidMove(_ => true)
+            (x, Js.Math.max_int(y - 1, 0))
+          } else {
+            setIsValidMove(_ => false)
+            (x, y)
+          }
+        })
+        ReactEvent.Keyboard.preventDefault(evt)
+      | "ArrowRight" =>
+        // Js.log("Move right")
+        setPosition(((x, y)) => {
+          if (y + 1 <= maxY) {
+            setIsValidMove(_ => true)
+            (x, Js.Math.min_int(y + 1, maxY))
+          } else {
+            setIsValidMove(_ => false)
+            (x, y)
+          }
+        })
+        ReactEvent.Keyboard.preventDefault(evt)
+      | "ArrowUp" =>
+        // Js.log("Move up")
+        setPosition(((x, y)) => {
+          if (x - 1 >= 0) {
+            setIsValidMove(_ => true)
+            (Js.Math.max_int(x - 1, 0), y)
+          } else {
+            setIsValidMove(_ => false)
+            (x, y)
+          }
+        })
+        ReactEvent.Keyboard.preventDefault(evt)
+      | "ArrowDown" =>
+        // Js.log("Move Down")
+        setPosition(((x, y)) => {
+          if (x + 1 <= maxX) {
+            setIsValidMove(_ => true)
+            (Js.Math.min_int(x + 1, maxX), y)
+          } else {
+            setIsValidMove(_ => false)
+            (x, y)
+          }
+        })
+        ReactEvent.Keyboard.preventDefault(evt)
+      | _ => ()
+      }
     }
   }
+
+
+  React.useEffect(() => {
+    if isInteractive {
+      addEventListener("keyup", onKeyDown)
+    }
+    Some(() => {
+      removeEventListener("keyup", onKeyDown)
+    })
+  }, [isInteractive])
 
   React.useEffect(() => {
     if (isValidMove) {
