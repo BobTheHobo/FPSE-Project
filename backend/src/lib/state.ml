@@ -1,24 +1,26 @@
 open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
+
 type base_grid_map = Maker.T.t Coordinate.CoordinateMap.t
+
 type encodeable_game_state = {
   obstacles : base_grid_map;
   player_position : Coordinate.t;
   is_dead : bool;
 }
 
-module GameStateTbl = struct
+(* module GameStateTbl = struct
   type t = {
     obstacles : base_grid_map;
-    grid_module : (module Map_grid.MAP_GRID with type t = base_grid_map);
+    grid_module : (module Map_grid.S with type t = base_grid_map);
     is_dead : bool;
     player_position : Coordinate.t;
     width : int;
     height : int;
   }
-  
+
   let to_string (t : t) =
-      let (module A) = (t.grid_module) in
+    let (module A) = t.grid_module in
     Printf.sprintf
       ("{\n" ^^ "  player_position: { x: %d, y: %d },\n" ^^ "  is_dead: %s,\n"
      ^^ "  obstacles: %s\n" ^^ "}")
@@ -35,22 +37,22 @@ module GameStateTbl = struct
     | None -> failwith "Can't convert a state that doesn't exist to a string..."
     | Some v -> to_string v
 
-  let set ~(key : string) (state : t) : unit =
-    Hashtbl.set tbl ~key ~data:state
-    
-  let update ~(id : string) ~(player_position) ~(is_dead) ~(obstacles) =
-    let curr_state = get_exn id in
-    let new_state = {
-      grid_module = curr_state.grid_module;
-      height = curr_state.height;
-      width = curr_state.width;
-      player_position;
-      is_dead;
-      obstacles
-    } in
-    set ~key:id new_state;
+  let set ~(key : string) (state : t) : unit = Hashtbl.set tbl ~key ~data:state
 
-end
+  let update ~(id : string) ~player_position ~is_dead ~obstacles =
+    let curr_state = get_exn id in
+    let new_state =
+      {
+        grid_module = curr_state.grid_module;
+        height = curr_state.height;
+        width = curr_state.width;
+        player_position;
+        is_dead;
+        obstacles;
+      }
+    in
+    set ~key:id new_state
+end *)
 
 module Pattern = struct
   let oscillating ({ x; y } : Coordinate.t) : Coordinate.t list =
@@ -108,10 +110,10 @@ module Supervisor = struct
     let h_offset = Random.int (half_height - 1) in
     let op = match Random.int 2 with 1 -> ( + ) | _ -> ( - ) in
     { Coordinate.x = op half_width w_offset; y = op half_height h_offset }
-    
+
   let is_in_bounds (coordinate : Coordinate.t) ~height ~width =
-    coordinate.x >= 0 && coordinate.x < width
-    && coordinate.y >= 0 && coordinate.y < height
+    coordinate.x >= 0 && coordinate.x < width && coordinate.y >= 0
+    && coordinate.y < height
 
   let initial_obstacle_coordinates ~width ~height =
     let start_pos = random_start_position ~width ~height in
@@ -123,17 +125,20 @@ module Supervisor = struct
     | fire :: ice :: water :: _ -> [ fire; ice; water ]
     | _ -> failwith "HAHAHAHAHAHAHAHAHAHAHAAH"
 
-  let random_grid_start (module A : Map_grid.MAP_GRID with type t = base_grid_map) ~width ~height = 
+  let random_grid_start (module A : Map_grid.S with type t = base_grid_map)
+      ~width ~height =
     List.fold A.cell_type_ls ~init:[] ~f:(fun acc cell_type ->
-          let coordinates = initial_obstacle_coordinates ~width ~height in
-          let mapped = List.map coordinates ~f:(fun c -> (c, cell_type)) in
-          acc @ mapped)
+        let coordinates = initial_obstacle_coordinates ~width ~height in
+        let mapped = List.map coordinates ~f:(fun c -> (c, cell_type)) in
+        acc @ mapped)
     |> A.of_alist_exn
-    
-  let before_after_str (state : GameStateTbl.t) =
+
+  let before_after_str (state : Statetbl.t) =
     let module A = (val state.grid_module) in
-    (A.to_string state.obstacles, A.to_string (A.next state.obstacles ~width:state.width ~height:state.height))
-    
+    ( A.to_string state.obstacles,
+      A.to_string
+        (A.next state.obstacles ~width:state.width ~height:state.height) )
+
   let init_game_state ({ fire; ice; water; width; height } : game_params) =
     let fire = encode_params fire in
     let ice = encode_params ice in
@@ -142,7 +147,7 @@ module Supervisor = struct
     let module A = (val Maker.make_grid params_of_t) in
     let obstacles = random_grid_start (module A) ~width ~height in
     let game_id = get_id_safe () in
-    GameStateTbl.set ~key:game_id
+    Statetbl.set ~key:game_id
       {
         obstacles;
         grid_module = (module A);
@@ -152,9 +157,9 @@ module Supervisor = struct
         height;
       };
     game_id
-    
-  let get_game_state (id : string) : GameStateTbl.t =
-    match GameStateTbl.get id with
+
+  let get_game_state (id : string) : Statetbl.t =
+    match Statetbl.get id with
     | Some v -> v
     | None -> failwith ("No game with id " ^ id ^ " could be found")
 
@@ -163,7 +168,7 @@ module Supervisor = struct
     {
       obstacles = v.obstacles;
       player_position = v.player_position;
-      is_dead = v.is_dead
+      is_dead = v.is_dead;
     }
 
   let is_player_dead (player_position : Coordinate.t)
@@ -175,7 +180,7 @@ module Supervisor = struct
 
   let next_game_state (id : string) (next_position : Coordinate.t) =
     let {
-      GameStateTbl.obstacles;
+      Statetbl.obstacles;
       grid_module;
       width;
       height;
@@ -191,7 +196,7 @@ module Supervisor = struct
       let next_grid_state = A.next obstacles ~width ~height in
       let obs_coordinates = A.coordinate_set next_grid_state in
       let is_dead = is_player_dead next_position obs_coordinates in
-      GameStateTbl.update ~id:id ~player_position:(next_position) ~obstacles:next_grid_state ~is_dead;
+      Statetbl.update ~id ~player_position:next_position
+        ~obstacles:next_grid_state ~is_dead;
       { is_dead; player_position = next_position; obstacles }
-
 end

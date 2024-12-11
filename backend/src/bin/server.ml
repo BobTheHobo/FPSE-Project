@@ -26,7 +26,7 @@ let encode_map_grid (map_grid : State.base_grid_map) =
           `Assoc
             [
               ("coordinate", coordinate_to_assoc key);
-              ( "cell_type", `String (Maker.T.to_string data))
+              ("cell_type", `String (Maker.T.to_string data));
             ]
         in
         entry :: acc)
@@ -73,7 +73,8 @@ let () =
          Dream.post "/game" (fun request ->
              let game_id = get_game_cookie request in
              let curr_state = State.Supervisor.get_game_state game_id in
-             Dream.log "\nCurrent state for id %s\n%s\n" game_id (State.GameStateTbl.to_string curr_state);
+             Dream.log "\nCurrent state for id %s\n%s\n" game_id
+               (Statetbl.to_string curr_state);
              let%lwt body = Dream.body request in
              let yojsoned = Yojson.Safe.from_string body in
              let a = game_post_request_body_of_yojson yojsoned in
@@ -82,7 +83,8 @@ let () =
                State.Supervisor.next_game_state game_id pos
              in
              let raw_next_state = State.Supervisor.get_game_state game_id in
-             Dream.log "\nSuccesfully updated state for id %s\n%s\n" game_id (State.GameStateTbl.to_string raw_next_state);
+             Dream.log "\nSuccesfully updated state for id %s\n%s\n" game_id
+               (Statetbl.to_string raw_next_state);
              encode_game_response_body encodeable_next_state
              |> Dream.respond
                   ~headers:
