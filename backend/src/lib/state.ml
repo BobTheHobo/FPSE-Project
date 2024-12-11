@@ -57,7 +57,6 @@ module ConfigTbl = struct
 end
   
 module StateTbl = struct
-  open Map_grid
   type t = {
     obstacles : Game_grid.t;
     player_position : Coordinate.t;
@@ -81,8 +80,8 @@ module StateTbl = struct
 end
 
 module Pattern = struct
-  let oscillating ({ x; y } : Map_grid.Coordinate.t) : Map_grid.Coordinate.t list = 
-    let open Map_grid.Coordinate.T in
+  let oscillating ({ x; y } : Coordinate.t) : Coordinate.t list = 
+    let open Coordinate.T in
   [
     { x; y };
     { x = x + 2; y };
@@ -96,7 +95,7 @@ module Pattern = struct
     { x = x + 7; y = y - 5 };
   ]
   
-  let to_coordinate_map_alist (coordinates : Map_grid.Coordinate.t list) (k : 'a) = 
+  let to_coordinate_map_alist (coordinates : Coordinate.t list) (k : 'a) = 
     List.map coordinates ~f:(fun coordinate -> (coordinate, k))
 end
 let fire_set = Cell_type.TSet.of_list [ fire ]
@@ -123,7 +122,7 @@ module Supervisor = struct
   
   let random_start_position ~width ~height =
     let half_width, half_height = (width / 2), (height / 2) in
-    let open Map_grid.Coordinate.T in
+    let open Coordinate.T in
     let w_offset = Random.int (half_width - 1) in
     let h_offset = Random.int (half_height - 1) in
     let op = (match Random.int 2 with
@@ -177,10 +176,10 @@ module Supervisor = struct
     | Some v -> v
     | None -> failwith ("No game with id " ^ id ^ " could be found")
     
-  let is_player_dead (player_position : Map_grid.Coordinate.t) (obstacle_coordinates : Map_grid.Coordinate.CSet.t) =
+  let is_player_dead (player_position : Coordinate.t) (obstacle_coordinates : Coordinate.CoordinateSet.t) =
     Set.mem obstacle_coordinates player_position
     
-  let next_game_state (id : string) (next_position : Map_grid.Coordinate.t) : StateTbl.t =
+  let next_game_state (id : string) (next_position : Coordinate.t) : StateTbl.t =
     (get_game_state id, get_game_config id)
     |> fun ({ StateTbl.obstacles; _}, { ConfigTbl.width; height }) ->
       let next_grid_state = Game_grid.next obstacles ~width:(width) ~height:(height) in

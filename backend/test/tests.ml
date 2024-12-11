@@ -40,7 +40,7 @@ end
 
 module M_grid = Map_grid.Make (Cell_type)
 
-let create_coordinate ~x ~y = { Map_grid.Coordinate.T.x; y }
+let create_coordinate ~x ~y = { Coordinate.T.x; y }
 
 let get_fire =
   match Cell_type.type_list with
@@ -63,8 +63,8 @@ let is_same_type (a : Cell_type.t) (b : Cell_type.t) = Cell_type.compare a b = 0
 let get_water_set = Cell_type.TSet.of_list [ get_water ]
 
 let test_all_dead_from_solitude_example _ =
-  let coordinate_1 = { Map_grid.Coordinate.T.x = 0; y = 0 } in
-  let coordinate_2 = { Map_grid.Coordinate.T.x = 2; y = 2 } in
+  let coordinate_1 = { Coordinate.T.x = 0; y = 0 } in
+  let coordinate_2 = { Coordinate.T.x = 2; y = 2 } in
   let fire_cell = List.hd_exn Cell_type.type_list in
   let set = Cell_type.TSet.of_list [ fire_cell ] in
   let m = Map.add_exn M_grid.empty ~key:coordinate_1 ~data:set in
@@ -80,7 +80,7 @@ let test_corners_alive_overpopulation_example _ =
   let c3 = create_coordinate ~x:2 ~y:1 in
   let c4 = create_coordinate ~x:1 ~y:1 in
   let m =
-    M_grid.CMap.of_alist_exn
+    Coordinate.CoordinateMap.of_alist_exn
       [
         (alive_left, get_fire_set);
         (alive_right, get_fire_set);
@@ -107,7 +107,7 @@ let test_spawn_example _ =
   let c2 = create_coordinate ~x:1 ~y:1 in
   let c3 = create_coordinate ~x:1 ~y:0 in
   let m =
-    M_grid.CMap.of_alist_exn
+    Coordinate.CoordinateMap.of_alist_exn
       [ (c1, get_fire_set); (c2, get_fire_set); (c3, get_fire_set) ]
   in
   let mnext = M_grid.next m ~width:4 ~height:4 in
@@ -117,7 +117,7 @@ let test_spawn_example _ =
 let test_fire_ice_collision_example _ =
   let fire_ice_set = Set.union get_fire_set get_ice_set in
   let c = create_coordinate ~x:0 ~y:0 in
-  let m = M_grid.CMap.of_alist_exn [ (c, fire_ice_set) ] in
+  let m = Coordinate.CoordinateMap.of_alist_exn [ (c, fire_ice_set) ] in
   let handled = M_grid.handle_collisions m in
   assert_equal (Map.length handled) 1;
   let ls = Map.find_exn handled c |> Set.to_list in
@@ -131,9 +131,9 @@ let test_fire_ice_collision_example _ =
   
 let test_no_collision_example _ =
   let c = create_coordinate ~x:0 ~y:0 in
-  let firem = M_grid.CMap.of_alist_exn [ (c, get_fire_set ) ] in
-  let icem = M_grid.CMap.of_alist_exn [ (c, get_ice_set ) ] in
-  let waterm = M_grid.CMap.of_alist_exn [ (c, get_water_set ) ] in
+  let firem = Coordinate.CoordinateMap.of_alist_exn [ (c, get_fire_set ) ] in
+  let icem = Coordinate.CoordinateMap.of_alist_exn [ (c, get_ice_set ) ] in
+  let waterm = Coordinate.CoordinateMap.of_alist_exn [ (c, get_water_set ) ] in
   let (fire_h, ice_h, water_h) = (M_grid.handle_collisions firem, M_grid.handle_collisions icem, M_grid.handle_collisions waterm) in 
   assert_equal (Map.length fire_h) 1;
   assert_equal (Map.length ice_h) 1;

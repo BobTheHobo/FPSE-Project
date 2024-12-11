@@ -6,8 +6,8 @@ type params_json = { b : int; s1 : int; s2 : int } [@@deriving yojson]
 type position = { x : int; y : int } [@@deriving yojson]
 type game_post_request_body = { player_position : position } [@@deriving yojson]
 
-let position_to_coordinate (pos : position) : Map_grid.Coordinate.t =
-  { Map_grid.Coordinate.T.x = pos.x; y = pos.y }
+let position_to_coordinate (pos : position) : Coordinate.t =
+  { Coordinate.T.x = pos.x; y = pos.y }
 
 let get_game_cookie request =
   match Dream.cookie request "game_id" with
@@ -16,7 +16,7 @@ let get_game_cookie request =
       game_id
   | None -> State.Supervisor.get_id_then_incr ()
 
-let coordinate_to_assoc (coordinate : Map_grid.Coordinate.t) =
+let coordinate_to_assoc (coordinate : Coordinate.t) =
   `Assoc [ ("x", `Int coordinate.x); ("y", `Int coordinate.y) ]
 
 let encode_map_grid (map_grid : State.Game_grid.t) =
