@@ -3,25 +3,6 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type base_grid_map = Maker.T.t Coordinate.CoordinateMap.t
 
-module Pattern = struct
-  let oscillating ({ x; y } : Coordinate.t) : Coordinate.t list =
-    [
-      { x; y };
-      { x = x + 2; y };
-      { x = x + 2; y = y - 1 };
-      { x = x + 4; y = y - 2 };
-      { x = x + 4; y = y - 3 };
-      { x = x + 4; y = y - 4 };
-      { x = x + 6; y = y - 3 };
-      { x = x + 6; y = y - 4 };
-      { x = x + 6; y = y - 5 };
-      { x = x + 7; y = y - 5 };
-    ]
-
-  let to_coordinate_map_alist (coordinates : Coordinate.t list) (k : 'a) =
-    List.map coordinates ~f:(fun coordinate -> (coordinate, k))
-end
-
 let max_count : int = 10
 let game_id_count : int ref = ref 0
 
@@ -62,10 +43,26 @@ let is_in_bounds (coordinate : Coordinate.t) ~height ~width =
   coordinate.x >= 0 && coordinate.x < width && coordinate.y >= 0
   && coordinate.y < height
 
-let initial_obstacle_coordinates ~width ~height =
-  let start_pos = random_start_position ~width ~height in
-  Pattern.oscillating start_pos
-  |> List.filter ~f:(fun c -> is_in_bounds c ~height ~width)
+let initial_obstacle_coordinates ~(width : int) ~(height : int) : Coordinate.t list =
+  let start : Coordinate.t = random_start_position ~width ~height in
+  let choice_1 : bool = Random.int 10 % 2 = 0 in
+    let choice_2 : int = if Random.int 10 % 2 = 0 then 1 else -1 in
+    let choice_3 : int = if Random.int 10 % 2 = 0 then 1 else -1 in
+    start ::
+    if choice_1 then
+      [
+        { Coordinate.x = start.x + 1; y = start.y };
+        { Coordinate.x = start.x - 1; y = start.y };
+        { Coordinate.x = start.x; y = start.y + choice_2 };
+        { Coordinate.x = start.x + choice_3; y = start.y + (choice_2 * -1) }
+      ]
+    else
+      [
+        { Coordinate.x = start.x; y = start.y + 1 };
+        { Coordinate.x = start.x; y = start.y - 1 };
+        { Coordinate.x = start.x + choice_2; y = start.y };
+        { Coordinate.x = start.x + (choice_2 * -1); y = start.y + choice_3 }
+      ]
 
 let get3 ls =
   match ls with
