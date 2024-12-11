@@ -128,9 +128,7 @@ function coordinateToTuple(param) {
 
 function obstacleTuplesOfType(obstacles, cellType) {
   var filtered = Js_array.filter((function (obstacle) {
-          return Js_array.every((function (ct) {
-                        return cellType === ct;
-                      }), obstacle.cell_types);
+          return obstacle.cell_type === cellType;
         }), obstacles);
   return Js_array.map((function (obstacle) {
                 return coordinateToTuple(obstacle.coordinate);

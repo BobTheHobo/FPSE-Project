@@ -1,16 +1,17 @@
 open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-module Cell_type : Map_grid.CELL_TYPE = struct
+module CellType : Map_grid.CELL_TYPE = struct
   module T = struct
     type t = Fire | Ice | Water [@@deriving sexp, compare]
   end
 
   include T
-  module TSet = Set.Make (T)
+  type t = T.t [@@deriving sexp, compare]
+  module CellSet = Set.Make (T)
 
   let to_string (t : t) = Sexp.to_string (sexp_of_t t)
-  let type_list = [ T.Fire; T.Ice; T.Water ]
+  let all_set = CellSet.of_list [ Fire; Ice; Water ]
   let compare = T.compare
 
   let params_of_t (t : t) =
@@ -19,31 +20,15 @@ module Cell_type : Map_grid.CELL_TYPE = struct
     | Ice -> { b = 3; s1 = 2; s2 = 3 }
     | Water -> { b = 3; s1 = 2; s2 = 3 }
 
-  let handle_collision (a : t) (b : t) =
-    match (a, b) with
+  let on_collision (a : t) (b : t) =
+    if (compare a b = 0) then Some a
+    else match a, b with
     | Fire, Ice -> Some Water
     | Ice, Water -> Some Ice
     | _ -> None
-
-  let handle_collisions (tset : TSet.t) =
-    match Set.to_list tset with
-    | [] -> None
-    | a :: [] -> Some a
-    | [ a; b ] -> handle_collision a b
-    | [ a; b; c ] -> (
-        match handle_collision a b with
-        | None -> Some c
-        | Some cell -> handle_collision cell c)
-    | _ -> None
 end
 
-module Game_grid = Map_grid.Make (Cell_type)
-
-let fire =
-  match Cell_type.type_list with fire :: _ -> fire | _ -> failwith "lol"
-
-let ice =
-  match Cell_type.type_list with _ :: ice :: _ -> ice | _ -> failwith "lol"
+module Game_grid = Map_grid.Make (CellType)
 
 module ConfigTbl = struct
   type t = { width : int; height : int }
@@ -103,9 +88,6 @@ module Pattern = struct
     List.map coordinates ~f:(fun coordinate -> (coordinate, k))
 end
 
-let fire_set = Cell_type.TSet.of_list [ fire ]
-let ice_set = Cell_type.TSet.of_list [ ice ]
-
 module Supervisor = struct
   let max_count : int = 10
   let game_id_count : int ref = ref 0
@@ -138,7 +120,7 @@ module Supervisor = struct
   let get_id_then_incr () = increment () |> string_of_id
 
   let initial_obstacles ~width ~height =
-    [ fire_set; ice_set ]
+    Set.to_list CellType.all_set
     |> List.fold ~init:[] ~f:(fun acc singleton ->
            let start_pos = random_start_position ~width ~height in
            Pattern.oscillating start_pos |> fun coordinates ->
@@ -147,10 +129,13 @@ module Supervisor = struct
     |> List.filter ~f:(fun (coordinate, _) ->
            (coordinate.x > -1 && coordinate.x < width)
            && coordinate.y > -1 && coordinate.y < height)
-    |> List.fold ~init:Game_grid.empty ~f:(fun acc (coordinate, element_set) ->
+    |> List.fold ~init:Game_grid.empty ~f:(fun acc (coordinate, cell_type) ->
            (match Map.find acc coordinate with
-           | Some set -> Set.union set element_set
-           | None -> element_set)
+           | Some existing -> 
+            (match CellType.on_collision existing cell_type with
+            | Some collided -> collided
+            | None -> cell_type)
+           | None -> cell_type)
            |> fun data -> Map.set acc ~key:coordinate ~data)
 
   let create_game ({ width; height; _ } : game_params) =

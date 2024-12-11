@@ -22,15 +22,11 @@ let coordinate_to_assoc (coordinate : Coordinate.t) =
 let encode_map_grid (map_grid : State.Game_grid.t) =
   let map_as_list =
     Map.fold map_grid ~init:[] ~f:(fun ~key ~data acc ->
-        let cell_type_list =
-          Set.to_list data |> List.map ~f:State.Cell_type.to_string
-        in
         let entry =
           `Assoc
             [
               ("coordinate", coordinate_to_assoc key);
-              ( "cell_types",
-                `List (List.map cell_type_list ~f:(fun ct -> `String ct)) );
+              ( "cell_type", `String (State.CellType.to_string data))
             ]
         in
         entry :: acc)

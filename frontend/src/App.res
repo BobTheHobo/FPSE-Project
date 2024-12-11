@@ -48,18 +48,14 @@ let decodeObstacleObject = (obstacleJson: Js.Json.t) => {
   switch (decodeObject(obstacleJson)) {
     | Some (dict) => {
       let coordinate = Dict.getUnsafe(dict, "coordinate") |> decodeCoordinateFromJson
-      let cell_types = Dict.getUnsafe(dict, "cell_types") 
-      |> decodeArrayFromJson
-      |> (array) => Js.Array.map(cellType => Js.Json.decodeString(cellType) |> stringOption => Option.getExn(stringOption), array);
+      let cell_type = Dict.getUnsafe(dict, "cell_type") 
+      |> cellType => Js.Json.decodeString(cellType)->Option.getExn
       ({
         Grid.coordinate,
-        cell_types
+        cell_type
       })
     }
-    | None => ({
-        coordinate: defaultPosition,
-        cell_types: []
-      })
+    | None => raise(Not_found)
   }
 }
 

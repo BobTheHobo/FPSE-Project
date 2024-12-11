@@ -2,16 +2,16 @@ open Core
 open OUnit2
 open Game
 
-module Cell_type : Map_grid.CELL_TYPE = struct
+module CellType : Map_grid.CELL_TYPE = struct
   module T = struct
     type t = Fire | Ice | Water [@@deriving sexp, compare]
   end
 
   include T
-  module TSet = Set.Make (T)
+  module CellSet = Set.Make (T)
 
   let to_string (t : t) = Sexp.to_string (sexp_of_t t)
-  let type_list = [ T.Fire; T.Ice; T.Water ]
+  let all_set = CellSet.of_list [ T.Fire; T.Ice; T.Water ]
   let compare = T.compare
 
   let params_of_t (t : t) =
@@ -20,55 +20,41 @@ module Cell_type : Map_grid.CELL_TYPE = struct
     | Ice -> { b = 3; s1 = 2; s2 = 3 }
     | Water -> { b = 3; s1 = 2; s2 = 3 }
 
-  let handle_collision (a : t) (b : t) =
-    match (a, b) with
+  let on_collision (a : t) (b : t) =
+    if (compare a b = 0) then Some a
+    else match (a, b) with
     | Fire, Ice -> Some Water
     | Ice, Water -> Some Ice
     | _ -> None
-
-  let handle_collisions (tset : TSet.t) =
-    match Set.to_list tset with
-    | [] -> None
-    | a :: [] -> Some a
-    | [ a; b ] -> handle_collision a b
-    | [ a; b; c ] -> (
-        match handle_collision a b with
-        | None -> Some c
-        | Some cell -> handle_collision cell c)
-    | _ -> None
 end
 
-module M_grid = Map_grid.Make (Cell_type)
+module M_grid = Map_grid.Make (CellType)
 
 let create_coordinate ~x ~y = { Coordinate.x; y }
 
 let get_fire =
-  match Cell_type.type_list with
+  match (Set.to_list CellType.all_set) with
   | fire_cell :: _ -> fire_cell
   | _ -> failwith "lol"
 
 let get_ice =
-  match Cell_type.type_list with
+  match Set.to_list CellType.all_set with
   | _ :: ice_cell :: _ -> ice_cell
   | _ -> failwith "lol"
 
 let get_water =
-  match Cell_type.type_list with
+  match Set.to_list CellType.all_set with
   | _ :: _ :: water_cell :: _ -> water_cell
   | _ -> failwith "lol"
 
-let get_fire_set = Cell_type.TSet.of_list [ get_fire ]
-let get_ice_set = Cell_type.TSet.of_list [ get_ice ]
-let is_same_type (a : Cell_type.t) (b : Cell_type.t) = Cell_type.compare a b = 0
-let get_water_set = Cell_type.TSet.of_list [ get_water ]
+let is_same_type (a : CellType.t) (b : CellType.t) = CellType.compare a b = 0
 
 let test_all_dead_from_solitude_example _ =
   let coordinate_1 = { Coordinate.x = 0; y = 0 } in
   let coordinate_2 = { Coordinate.x = 2; y = 2 } in
-  let fire_cell = List.hd_exn Cell_type.type_list in
-  let set = Cell_type.TSet.of_list [ fire_cell ] in
-  let m = Map.add_exn M_grid.empty ~key:coordinate_1 ~data:set in
-  let grid_map = Map.add_exn m ~key:coordinate_2 ~data:set in
+  let fire_cell = List.hd_exn (Set.to_list CellType.all_set) in
+  let m = Map.add_exn M_grid.empty ~key:coordinate_1 ~data:fire_cell in
+  let grid_map = Map.add_exn m ~key:coordinate_2 ~data:fire_cell in
   let all_dead = M_grid.next grid_map ~width:4 ~height:4 in
   assert_equal (Map.length all_dead) 0
 
@@ -82,12 +68,12 @@ let test_corners_alive_overpopulation_example _ =
   let m =
     Coordinate.CoordinateMap.of_alist_exn
       [
-        (alive_left, get_fire_set);
-        (alive_right, get_fire_set);
-        (c1, get_fire_set);
-        (c2, get_fire_set);
-        (c3, get_fire_set);
-        (c4, get_fire_set);
+        (alive_left, get_fire);
+        (alive_right, get_fire);
+        (c1, get_fire);
+        (c2, get_fire);
+        (c3, get_fire);
+        (c4, get_fire);
       ]
   in
   let mnext = M_grid.next m ~width:4 ~height:4 in
@@ -108,36 +94,16 @@ let test_spawn_example _ =
   let c3 = create_coordinate ~x:1 ~y:0 in
   let m =
     Coordinate.CoordinateMap.of_alist_exn
-      [ (c1, get_fire_set); (c2, get_fire_set); (c3, get_fire_set) ]
+      [ (c1, get_fire); (c2, get_fire); (c3, get_fire) ]
   in
   let mnext = M_grid.next m ~width:4 ~height:4 in
   assert_equal (Map.length mnext) 4;
   assert_equal [ c1; create_coordinate ~x:0 ~y:1; c3; c2 ] (Map.keys mnext)
 
 let test_fire_ice_collision_example _ =
-  let fire_ice_set = Set.union get_fire_set get_ice_set in
-  let c = create_coordinate ~x:0 ~y:0 in
-  let m = Coordinate.CoordinateMap.of_alist_exn [ (c, fire_ice_set) ] in
-  let handled = M_grid.handle_collisions m in
-  assert_equal (Map.length handled) 1;
-  let ls = Map.find_exn handled c |> Set.to_list in
-  assert_equal (List.length ls) 1;
-  match ls with
-  | hd :: _ ->
-      assert_bool "Water should equal water" (is_same_type hd get_water);
-      assert_bool "Fire shouldn't equal water" (not (is_same_type hd get_fire));
-      assert_bool "Ice shouldn't equal water" (not (is_same_type hd get_ice))
-  | _ -> failwith "lol"
-  
-let test_no_collision_example _ =
-  let c = create_coordinate ~x:0 ~y:0 in
-  let firem = Coordinate.CoordinateMap.of_alist_exn [ (c, get_fire_set ) ] in
-  let icem = Coordinate.CoordinateMap.of_alist_exn [ (c, get_ice_set ) ] in
-  let waterm = Coordinate.CoordinateMap.of_alist_exn [ (c, get_water_set ) ] in
-  let (fire_h, ice_h, water_h) = (M_grid.handle_collisions firem, M_grid.handle_collisions icem, M_grid.handle_collisions waterm) in 
-  assert_equal (Map.length fire_h) 1;
-  assert_equal (Map.length ice_h) 1;
-  assert_equal (Map.length water_h) 1
+  match CellType.on_collision get_fire get_ice with
+  | Some v -> assert_equal (is_same_type v get_water) true
+  | None -> assert_failure "Unexpected none collision"
 
 let rand_grid_dimension =
   Quickcheck.random_value ~seed:`Nondeterministic (Int.gen_incl 3 50)
@@ -154,7 +120,7 @@ let test_all_dead_from_solitude_quickcheck _ =
   let solitude_pos_list = Sequence.to_list solitude_pos_sequence in
   let m =
     List.fold solitude_pos_list ~init:M_grid.empty ~f:(fun acc pos ->
-        Map.add_exn acc ~key:{ x = pos; y = pos } ~data:get_water_set)
+        Map.add_exn acc ~key:{ x = pos; y = pos } ~data:get_water)
   in
   let mnext = M_grid.next m ~height ~width in
   assert_equal (Map.length mnext) 0
@@ -168,7 +134,6 @@ let example_suite =
          >:: test_corners_alive_overpopulation_example;
          "test test_spawn example" >:: test_spawn_example;
          "test test_fire_ice_collision example" >:: test_fire_ice_collision_example;
-         "test test_no_collision example" >:: test_no_collision_example;
        ]
 
 let quickcheck_suite =

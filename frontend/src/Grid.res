@@ -6,7 +6,7 @@ open Js.Json
 type coordinate = { x : int, y : int }
 type obstacle = {
   coordinate: coordinate,
-  cell_types: array<string>
+  cell_type: string
 }
 type game_state = {
   obstacles: array<obstacle>,
@@ -76,7 +76,7 @@ let obstaclesToTuples = (obstacles, cellType) => switch decodeArray(obstacles) {
 let coordinateToTuple = ({ x, y }: coordinate) => (x, y)
 
 let obstacleTuplesOfType = (obstacles: array<obstacle>, cellType: string) => 
-  Js.Array.filter(obstacle => Js.Array.every(ct => cellType === ct, obstacle.cell_types), obstacles)
+  Js.Array.filter(obstacle => obstacle.cell_type == cellType, obstacles)
   |> filtered => Js.Array.map(obstacle => coordinateToTuple(obstacle.coordinate), filtered)
 
 let tupleToCoordinate = ((x, y): (int, int)) : coordinate => { x, y }

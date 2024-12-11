@@ -79,23 +79,20 @@ function decodeResponseBody(payload) {
     var obstacles = (function (array) {
           return Js_array.map((function (json) {
                         var dict = Js_json.decodeObject(json);
-                        if (dict === undefined) {
+                        if (dict !== undefined) {
+                          var coordinate = decodeCoordinateFromJson(dict["coordinate"]);
+                          var cell_type = (function (cellType) {
+                                return Core__Option.getExn(Js_json.decodeString(cellType), undefined);
+                              })(dict["cell_type"]);
                           return {
-                                  coordinate: defaultPosition,
-                                  cell_types: []
+                                  coordinate: coordinate,
+                                  cell_type: cell_type
                                 };
                         }
-                        var coordinate = decodeCoordinateFromJson(dict["coordinate"]);
-                        var cell_types = (function (array) {
-                              return Js_array.map((function (cellType) {
-                                            var stringOption = Js_json.decodeString(cellType);
-                                            return Core__Option.getExn(stringOption, undefined);
-                                          }), array);
-                            })(decodeArrayFromJson(dict["cell_types"]));
-                        return {
-                                coordinate: coordinate,
-                                cell_types: cell_types
-                              };
+                        throw {
+                              RE_EXN_ID: "Not_found",
+                              Error: new Error()
+                            };
                       }), array);
         })(decodeArrayFromJson(dict["obstacles"]));
     return {
