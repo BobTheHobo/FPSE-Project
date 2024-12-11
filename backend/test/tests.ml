@@ -22,11 +22,12 @@ module CellType : Map_grid.CELL_TYPE = struct
     | Water -> { b = 3; s1 = 2; s2 = 3 }
 
   let on_collision (a : t) (b : t) =
-    if (compare a b = 0) then Some a
-    else match (a, b) with
-    | Fire, Ice -> Some Water
-    | Ice, Water -> Some Ice
-    | _ -> None
+    if compare a b = 0 then Some a
+    else
+      match (a, b) with
+      | Fire, Ice -> Some Water
+      | Ice, Water -> Some Ice
+      | _ -> None
 end
 
 module M_grid = Map_grid.Make (CellType)
@@ -34,7 +35,7 @@ module M_grid = Map_grid.Make (CellType)
 let create_coordinate ~x ~y = { Coordinate.x; y }
 
 let get_fire =
-  match (Set.to_list CellType.all_set) with
+  match Set.to_list CellType.all_set with
   | fire_cell :: _ -> fire_cell
   | _ -> failwith "lol"
 
@@ -134,7 +135,8 @@ let example_suite =
          "test corners_alive_overpopulation example"
          >:: test_corners_alive_overpopulation_example;
          "test test_spawn example" >:: test_spawn_example;
-         "test test_fire_ice_collision example" >:: test_fire_ice_collision_example;
+         "test test_fire_ice_collision example"
+         >:: test_fire_ice_collision_example;
        ]
 
 let quickcheck_suite =

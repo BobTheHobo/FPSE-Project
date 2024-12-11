@@ -1,5 +1,6 @@
 (executable
  (name server)
+ (modules server json)
  (libraries game core core_unix core_unix.sys_unix stdio dream)
  (preprocess
   (pps ppx_jane lwt_ppx ppx_yojson_conv)))

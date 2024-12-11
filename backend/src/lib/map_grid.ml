@@ -21,7 +21,7 @@ module type CELL_TYPE = sig
   val on_collision : t -> t -> t option
 end
 
-module type MAP_GRID = sig
+module type S = sig
   type cell_type
   type t
 
@@ -43,14 +43,12 @@ functor
     type t = cell_type Coordinate.CoordinateMap.t
 
     let empty = Coordinate.CoordinateMap.empty
-
     let cell_type_ls : cell_type list = CellType.cell_ls
-    
+
     let of_alist_exn (assoc_list : (Coordinate.t * cell_type) list) : t =
       List.fold assoc_list ~init:empty ~f:(fun acc (coordinate, ct) ->
-        Map.set acc ~key:coordinate ~data:ct
-      )
-      (* Coordinate.CoordinateMap.of_alist_exn assoc_list *)
+          Map.set acc ~key:coordinate ~data:ct)
+    (* Coordinate.CoordinateMap.of_alist_exn assoc_list *)
 
     let assoc_to_string (({ x; y }, cell_type) : Coordinate.t * CellType.t) :
         string =
@@ -81,7 +79,7 @@ functor
       |> List.fold ~init:Coordinate.CoordinateSet.empty
            ~f:(fun acc coordinate ->
              lookup_neighbors m cell coordinate |> Set.union acc)
-           
+
     let coordinate_set (m : t) : Coordinate.CoordinateSet.t =
       Map.keys m |> Coordinate.CoordinateSet.of_list
 
