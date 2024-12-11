@@ -38,15 +38,14 @@ let () =
              Dream.log "\nCurrent state for id %s\n%s\n" game_id
                (Statetbl.to_string curr_state);
              let%lwt body = Dream.body request in
-             Dream.log "%s\n" body;
-             let pos = Enc.parse_playser_positionj body in
-             let encodeable_next_state =
-               Supervisor.next_game_state game_id pos
-             in
-             let raw_next_state = Supervisor.get_game_state game_id in
-             Dream.log "\nSuccesfully updated state for id %s\n%s\n" game_id
-               (Statetbl.to_string raw_next_state);
-             Enc.encode_game_response_body encodeable_next_state
+             Enc.parse_playser_positionj body
+             |> Supervisor.next_game_state game_id
+             |> fun next_state -> (
+              let raw_next_state = Supervisor.get_game_state game_id in
+              Dream.log "\nSuccesfully updated state for id %s\n%s\n" game_id
+                (Statetbl.to_string raw_next_state);
+              );
+              Enc.encode_game_response_body next_state
              |> Dream.respond
                   ~headers:
                     [
